@@ -363,3 +363,74 @@ export function observedFromBundle(
   }
   return out;
 }
+
+/** Top-line summary of the watchlist, for the Overview tab. */
+export interface WatchlistSummary {
+  total: number;
+  observed: number;
+  ancestry_supported: number;
+  strong_evidence: number;
+  not_assayed: number;
+  conditions: number;
+  processed_chromosomes: string[];
+}
+
+export function summarizeWatchlist(
+  entries: WatchlistEntry[],
+  processed: Set<string>,
+): WatchlistSummary {
+  const conditions = new Set(entries.map((e) => e.variant.condition));
+  return {
+    total: entries.length,
+    observed: entries.filter((e) => e.priority_category === "observed_finding").length,
+    ancestry_supported: entries.filter(
+      (e) => e.priority_category === "ancestry_supported",
+    ).length,
+    strong_evidence: entries.filter(
+      (e) => e.priority_category === "review_status_strong",
+    ).length,
+    not_assayed: entries.filter(
+      (e) =>
+        e.measurement_status === "unassayed" ||
+        e.measurement_status === "indel_uninterpretable" ||
+        e.measurement_status === "not_assayed",
+    ).length,
+    conditions: conditions.size,
+    processed_chromosomes: [...processed].sort(),
+  };
+}
+
+export interface ConditionGroup {
+  condition: string;
+  gene: string;
+  inheritance: string;
+  entries: WatchlistEntry[];
+  observed: number;
+  assayable: number;
+  total: number;
+}
+
+/** Group watchlist entries by condition, for the Conditions tab. */
+export function groupByCondition(entries: WatchlistEntry[]): ConditionGroup[] {
+  const map = new Map<string, ConditionGroup>();
+  for (const e of entries) {
+    const key = e.variant.condition;
+    const g = map.get(key) ?? {
+      condition: e.variant.condition,
+      gene: e.variant.gene,
+      inheritance: e.variant.inheritance,
+      entries: [],
+      observed: 0,
+      assayable: 0,
+      total: 0,
+    };
+    g.entries.push(e);
+    g.total++;
+    if (e.measurement_status === "observed") {
+      g.assayable++;
+      if (e.priority_category === "observed_finding") g.observed++;
+    }
+    map.set(key, g);
+  }
+  return Array.from(map.values()).sort((a, b) => b.observed - a.observed || a.condition.localeCompare(b.condition));
+}

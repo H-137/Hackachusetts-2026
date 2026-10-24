@@ -1,70 +1,81 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Role } from "../App";
 import type { AnalysisBundle } from "../domain/explorer";
-import { pgsCoverage } from "../domain/clinical";
-import { regionFor } from "../domain/geography";
-import type { VariantObservation } from "../domain/types";
-import { CarrierStatusTable } from "./CarrierStatusTable";
-import { CoveragePanel } from "./CoveragePanel";
+import { toDisplayPosition } from "../domain/explorer";
+import {
+  buildWatchlist,
+  groupByCondition,
+  observedFromBundle,
+  type ConditionGroup,
+  type WatchlistEntry,
+} from "../domain/watchlist";
+import {
+  WATCHLIST_CATALOG,
+  processedChromosomes,
+} from "../domain/watchlistCatalog";
+import { regionDisplayName } from "../domain/geography";
 
 interface Props {
   bundle: AnalysisBundle;
   role: Role;
   condition: string;
-  onSelectVariant: (v: VariantObservation) => void;
+  /** Jump to this condition's entry in the Watchlist tab. */
+  onOpenWatchlist: (condition: string) => void;
 }
 
 /**
- * Condition page, role-aware.
- *  - Clinician: carrier status, per-variant provenance, the full coverage panel,
- *    PGS coverage transparency (replaces the composite score status), a VUS /
- *    low-evidence toggle (default off), and a collapsed condition explainer.
- *  - Patient: the expanded plain-language explainer only; no raw variant tables
- *    or provenance. High-impact findings point to a provider / genetic counselor.
+ * Conditions page — the condition-level companion to the Watchlist. Both read
+ * the same watchlist catalog: the Watchlist is per-variant triage; Conditions
+ * groups those same variants by condition and explains each one (coverage,
+ * carrier/observed status, founder-frequency context), cross-linked back to the
+ * Watchlist. Role-aware: clinicians get detail, patients get the plain-language
+ * explainer only.
  */
-export function ConditionPage({ bundle, role, condition, onSelectVariant }: Props) {
-  const man = bundle.conditions.find((c) => c.condition === condition);
-  const [showVus, setShowVus] = useState(false);
+export function ConditionPage({
+  bundle,
+  role,
+  condition,
+  onOpenWatchlist,
+}: Props) {
+  const groups = useMemo(() => {
+    const processed = processedChromosomes(bundle.segments);
+    const entries = buildWatchlist(
+      WATCHLIST_CATALOG,
+      bundle.segments,
+      processed,
+      observedFromBundle(bundle.variants),
+    );
+    return groupByCondition(entries);
+  }, [bundle.segments, bundle.variants]);
 
-  const pgs = useMemo(
-    () => pgsCoverage(bundle.scores).filter((p) => matchesCondition(p.condition, condition)),
-    [bundle.scores, condition],
-  );
+  const group =
+    groups.find((g) => g.condition === condition) ?? groups[0] ?? null;
 
-  if (!man) return <p className="subtitle">Condition not found.</p>;
-
-  const examined = man.examined_variant_keys
-    .map((k) => bundle.variants.find((v) => v.variant_key === k))
-    .filter((v): v is VariantObservation => Boolean(v));
-
-  // Whether this condition has any observed, high-impact finding (for patients).
-  const hasObservedFinding = bundle.evidence.some((e) => {
-    if (e.condition !== condition) return false;
-    const v = bundle.variants.find((x) => x.variant_key === e.variant_key);
-    return v?.measurement_status === "observed";
-  });
+  if (!group) return <p className="subtitle">No conditions available.</p>;
 
   // ---------------- Patient view ----------------
   if (role === "patient") {
+    const hasObserved = group.observed > 0;
     return (
-      <section aria-label={`Condition: ${condition} (patient view)`} className="condition-page patient">
-        <h3>{man.condition}</h3>
-        <p className="subtitle">{man.gene} · {man.inheritance}</p>
-        <p>{man.rationale}</p>
+      <section className="condition-page patient" aria-label={`Condition: ${group.condition}`}>
+        <h3>{group.condition}</h3>
+        <p className="subtitle">
+          {group.gene} · {group.inheritance}
+        </p>
         <div className="disclaimer" role="note">
-          {hasObservedFinding ? (
+          {hasObserved ? (
             <>
-              This DNA test looked at a small number of specific spots related to
-              this condition. Some results here are worth discussing with your
-              healthcare provider or a genetic counselor, who can arrange proper
-              confirmatory testing. This is not a diagnosis.
+              This DNA test looked at a few specific spots related to this
+              condition and found something worth discussing with your healthcare
+              provider or a genetic counselor, who can arrange proper confirmatory
+              testing. This is not a diagnosis.
             </>
           ) : (
             <>
-              This DNA test checks only a few specific spots for this condition,
-              and it did not find them — but that does not rule the condition out,
-              because most of it is not measured here. If you have questions or a
-              family history, talk with your provider or a genetic counselor.
+              This DNA test checks only a few specific spots for this condition.
+              Not finding them here does not rule the condition out, because most
+              of it is not measured. If you have questions or a family history,
+              talk with your provider or a genetic counselor.
             </>
           )}
         </div>
@@ -74,119 +85,103 @@ export function ConditionPage({ bundle, role, condition, onSelectVariant }: Prop
 
   // ---------------- Clinician view (default) ----------------
   return (
-    <section aria-label={`Condition: ${condition}`} className="condition-page">
-      <h3>{man.condition}</h3>
-      <p className="subtitle">
-        {man.gene} · {man.inheritance}
-      </p>
-
-      <h4>Carrier status (observed)</h4>
-      <CarrierStatusTable bundle={bundle} condition={condition} />
-
-      <h4>Coverage</h4>
-      <CoveragePanel bundle={bundle} />
-
-      <h4>Polygenic score coverage</h4>
-      {pgs.length === 0 ? (
-        <p className="subtitle">No polygenic score applies to this condition.</p>
-      ) : (
-        pgs.map((p) => (
-          <div key={p.model_id} className="evidence-card">
-            <div className="evidence-head">
-              <strong>{p.condition}</strong>{" "}
-              {p.scorable ? (
-                <span className="badge warn">{p.coverage_pct}% markers observed</span>
-              ) : (
-                <span className="badge bad">unscorable</span>
-              )}
-            </div>
-            <p>{p.verdict}</p>
-            <p className="subtitle">{p.limitations}</p>
-          </div>
-        ))
-      )}
-
-      <h4>Founder-variant frequency context</h4>
-      <ul className="tight">
-        {man.elevated_frequency_groups.map((g) => (
-          <li key={g}>
-            <span className="seg-dot" style={{ background: regionFor(g).color }} />
-            Frequency elevated in {regionFor(g).name}
-          </li>
-        ))}
-      </ul>
-      <p className="subtitle">
-        A higher allele frequency in a population is a statement about how common
-        a founder variant is there — not evidence that ancestry changes the
-        variant's effect, and not evidence any individual carries it.
-      </p>
-
-      <div className="vus-toggle">
-        <label>
-          <input
-            type="checkbox"
-            checked={showVus}
-            onChange={(e) => setShowVus(e.target.checked)}
-          />{" "}
-          Show VUS / low-evidence variants
-        </label>
+    <section className="condition-page" aria-label={`Condition: ${group.condition}`}>
+      <div className="condition-head">
+        <div>
+          <h3>{group.condition}</h3>
+          <p className="subtitle">
+            {group.gene} · {group.inheritance}
+          </p>
+        </div>
+        <button
+          className="secondary"
+          onClick={() => onOpenWatchlist(group.condition)}
+        >
+          View in watchlist →
+        </button>
       </div>
 
-      <h4>Curated variants examined ({examined.length})</h4>
-      <ul className="tight">
-        {examined
-          .filter(
-            (v) =>
-              showVus ||
-              !bundle.evidence.some(
-                (e) =>
-                  e.variant_key === v.variant_key &&
-                  (e.classification ?? "").toLowerCase().includes("uncertain"),
-              ),
-          )
-          .map((v) => (
-            <li key={v.variant_key}>
-              <button className="linklike" onClick={() => onSelectVariant(v)}>
-                {v.rsid ?? v.variant_key}
-              </button>{" "}
-              <span className="subtitle">· {v.measurement_status}</span>
-            </li>
-          ))}
-      </ul>
+      <div className="condition-stats">
+        <span className="badge bad">{group.observed} observed</span>
+        <span className="badge">
+          {group.assayable}/{group.total} variants assayable
+        </span>
+        <span className="badge warn">
+          {group.total - group.assayable} not assayed
+        </span>
+      </div>
 
-      <details className="explainer">
-        <summary>Condition explainer</summary>
-        <p>{man.rationale}</p>
-        <p>{man.screening_note}</p>
-      </details>
-
-      <div className="sources">
-        Sources:{" "}
-        {man.source_urls.map((s, i) => (
-          <span key={s}>
-            {i > 0 && " · "}
-            <a href={s} target="_blank" rel="noopener noreferrer">
-              {hostOf(s)}
-            </a>
-          </span>
+      <h4>Catalog variants for this condition</h4>
+      <div className="condition-variants">
+        {group.entries.map((e) => (
+          <ConditionVariantRow
+            key={e.variant.variant_id}
+            entry={e}
+            onOpenWatchlist={() => onOpenWatchlist(group.condition)}
+          />
         ))}
+      </div>
+
+      <div className="disclaimer" role="note">
+        A not-assayed variant is not a negative result. This array types only
+        selected positions; indels and most pathogenic variants are not covered.
+        Confirmatory clinical testing is required to establish presence or
+        absence.
       </div>
     </section>
   );
 }
 
-/** Loose match between a score's condition string and a curated condition. */
-function matchesCondition(scoreCondition: string, condition: string): boolean {
-  const a = scoreCondition.toLowerCase();
-  const b = condition.toLowerCase();
-  const key = b.split(/[\s/]/)[0] ?? "";
-  return a.includes(key) || b.includes((a.split(/[\s(]/)[0] ?? ""));
+function ConditionVariantRow({
+  entry,
+  onOpenWatchlist,
+}: {
+  entry: WatchlistEntry;
+  onOpenWatchlist: () => void;
+}) {
+  const v = entry.variant;
+  const observed = entry.measurement_status === "observed";
+  const assoc = v.associated_populations.map(regionDisplayName).join(", ");
+  return (
+    <div className="condition-variant">
+      <div className="condition-variant-head">
+        <strong>{v.rsid ?? v.variant_id}</strong>
+        <span className="subtitle">
+          {v.hgvs ? ` · ${v.hgvs}` : ""} · chr{v.chromosome}:
+          {toDisplayPosition(v.position_1based - 1).toLocaleString()}
+        </span>
+        <span className={`badge ${observed ? "bad" : "warn"}`}>
+          {entry.measurement_status}
+        </span>
+      </div>
+      <div className="condition-variant-body">
+        <span className="badge warn">{v.clinical_classification}</span>{" "}
+        <span className="subtitle">{v.review_status}</span>
+        {assoc && (
+          <div className="subtitle">
+            Founder-variant frequency elevated in: {assoc}
+            {v.founder_variant ? " (founder variant)" : ""} — population context,
+            not a personal finding.
+          </div>
+        )}
+        <div className="condition-variant-why">{entry.attention_rationale}</div>
+      </div>
+      <button className="linklike" onClick={onOpenWatchlist}>
+        Details in watchlist
+      </button>
+    </div>
+  );
 }
 
-function hostOf(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return url;
-  }
+export function useConditionGroups(bundle: AnalysisBundle): ConditionGroup[] {
+  return useMemo(() => {
+    const processed = processedChromosomes(bundle.segments);
+    const entries = buildWatchlist(
+      WATCHLIST_CATALOG,
+      bundle.segments,
+      processed,
+      observedFromBundle(bundle.variants),
+    );
+    return groupByCondition(entries);
+  }, [bundle.segments, bundle.variants]);
 }

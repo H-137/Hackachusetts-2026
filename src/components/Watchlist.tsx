@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AnalysisBundle } from "../domain/explorer";
 import {
   buildWatchlist,
@@ -15,6 +15,10 @@ import { formatBp, toDisplayPosition } from "../domain/explorer";
 
 interface Props {
   bundle: AnalysisBundle;
+  /** When set, pre-select the first variant for this condition. */
+  focusCondition?: string | null;
+  /** Jump to the Conditions tab for a condition. */
+  onOpenCondition?: (condition: string) => void;
 }
 
 const CATEGORY_LABEL: Record<PriorityCategory, string> = {
@@ -38,7 +42,7 @@ const CATEGORY_BADGE: Record<PriorityCategory, string> = {
  * prioritized by local ancestry at the variant's own locus (both copies), with
  * transparent categories and explanations rather than invented risk numbers.
  */
-export function Watchlist({ bundle }: Props) {
+export function Watchlist({ bundle, focusCondition, onOpenCondition }: Props) {
   const processed = useMemo(
     () => processedChromosomes(bundle.segments),
     [bundle.segments],
@@ -52,9 +56,18 @@ export function Watchlist({ bundle }: Props) {
     [bundle.segments, processed, observed],
   );
 
+  const focusId = focusCondition
+    ? entries.find((e) => e.variant.condition === focusCondition)?.variant.variant_id
+    : undefined;
   const [selected, setSelected] = useState<string | null>(
-    entries[0]?.variant.variant_id ?? null,
+    focusId ?? entries[0]?.variant.variant_id ?? null,
   );
+
+  // When deep-linked from Conditions, jump the selection to that condition.
+  useEffect(() => {
+    if (focusId) setSelected(focusId);
+  }, [focusId]);
+
   const active = entries.find((e) => e.variant.variant_id === selected) ?? null;
 
   return (
@@ -93,7 +106,9 @@ export function Watchlist({ bundle }: Props) {
           ))}
         </ul>
 
-        {active && <WatchlistDetail entry={active} />}
+        {active && (
+          <WatchlistDetail entry={active} onOpenCondition={onOpenCondition} />
+        )}
       </div>
     </section>
   );
@@ -135,13 +150,29 @@ function CopyBlock({
   );
 }
 
-function WatchlistDetail({ entry }: { entry: WatchlistEntry }) {
+function WatchlistDetail({
+  entry,
+  onOpenCondition,
+}: {
+  entry: WatchlistEntry;
+  onOpenCondition?: (condition: string) => void;
+}) {
   const v = entry.variant;
   return (
     <div className="watchlist-detail">
-      <h3>
-        {v.gene} — {v.condition}
-      </h3>
+      <div className="watchlist-detail-head">
+        <h3>
+          {v.gene} — {v.condition}
+        </h3>
+        {onOpenCondition && (
+          <button
+            className="secondary"
+            onClick={() => onOpenCondition(v.condition)}
+          >
+            About this condition →
+          </button>
+        )}
+      </div>
       <p className="subtitle">
         {v.hgvs ?? v.variant_id} · {v.build} chr{v.chromosome}:
         {toDisplayPosition(v.position_1based - 1).toLocaleString()} ·{" "}

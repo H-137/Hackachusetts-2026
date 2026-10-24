@@ -13,7 +13,7 @@ import { AncestryOverview } from "./AncestryOverview";
 import { Assistant } from "./Assistant";
 import { ChromosomePairMenu } from "./ChromosomePairMenu";
 import { ChromosomeTrack } from "./ChromosomeTrack";
-import { ConditionPage } from "./ConditionPage";
+import { ConditionPage, useConditionGroups } from "./ConditionPage";
 import { RegionClinicalPanel } from "./RegionClinicalPanel";
 import { RegionDetail } from "./RegionDetail";
 import { VariantDetail } from "./VariantDetail";
@@ -50,6 +50,8 @@ export function Explorer({
   const [region, setRegion] = useState<SelectedRegion | null>(null);
   const [variant, setVariant] = useState<VariantObservation | null>(null);
   const [condition, setCondition] = useState<string | null>(null);
+  // A condition to focus in the Watchlist when deep-linked from Conditions.
+  const [watchlistCondition, setWatchlistCondition] = useState<string | null>(null);
 
   // No zoom for now: the viewer always shows the full selected chromosome.
   const view = { start: 0, end: chromLength(chrom) };
@@ -74,6 +76,11 @@ export function Explorer({
     setTab("conditions");
   };
 
+  const openWatchlist = (c?: string) => {
+    setWatchlistCondition(c ?? null);
+    setTab("watchlist");
+  };
+
   // Reference regions overlapping the current selection drive the hero globe.
   const highlighted = useMemo(() => {
     if (!region) return [];
@@ -89,6 +96,9 @@ export function Explorer({
   const activeRegionNames = highlighted
     .filter((h) => h !== "UNKNOWN")
     .map((h) => regionFor(h).name);
+
+  // Watchlist conditions drive the Conditions tab (companion views, one source).
+  const conditionGroups = useConditionGroups(bundle);
 
   // Drive the background globe: highlight the selection's regions only while the
   // chromosomes tab is active; clear it elsewhere so the globe idles.
@@ -139,10 +149,17 @@ export function Explorer({
           bundle={bundle}
           role={role}
           onOpenCondition={openCondition}
+          onOpenWatchlist={() => openWatchlist()}
         />
       )}
 
-      {tab === "watchlist" && <Watchlist bundle={bundle} />}
+      {tab === "watchlist" && (
+        <Watchlist
+          bundle={bundle}
+          focusCondition={watchlistCondition}
+          onOpenCondition={openCondition}
+        />
+      )}
 
       {tab === "chromosomes" && (
         <section aria-label="Chromosome explorer" className="chrom-tab">
@@ -266,12 +283,12 @@ export function Explorer({
             <label>
               Condition{" "}
               <select
-                value={condition ?? bundle.conditions[0]?.condition ?? ""}
+                value={condition ?? conditionGroups[0]?.condition ?? ""}
                 onChange={(e) => setCondition(e.target.value)}
               >
-                {bundle.conditions.map((c) => (
-                  <option key={c.condition} value={c.condition}>
-                    {c.condition}
+                {conditionGroups.map((g) => (
+                  <option key={g.condition} value={g.condition}>
+                    {g.condition}
                   </option>
                 ))}
               </select>
@@ -280,8 +297,8 @@ export function Explorer({
           <ConditionPage
             bundle={bundle}
             role={role}
-            condition={condition ?? bundle.conditions[0]?.condition ?? ""}
-            onSelectVariant={onSelectVariant}
+            condition={condition ?? conditionGroups[0]?.condition ?? ""}
+            onOpenWatchlist={openWatchlist}
           />
         </section>
       )}
