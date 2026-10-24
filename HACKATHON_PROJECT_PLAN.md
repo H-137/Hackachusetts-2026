@@ -54,10 +54,10 @@ The starting input is a UTF-8 text file with `#` comment lines followed by five 
 
 ```text
 rsid	chromosome	position	allele1	allele2
-rs3131972	1	752721	G	G
-rs114525117	1	759036	G	G
-rs4040617	1	779322	A	A
-rs141175086	1	780397	C	C
+rs9000001	1	752721	A	C
+rs9000002	1	759036	T	T
+rs9000003	1	779322	C	G
+rs9000004	1	780397	A	T
 ```
 
 The supplied header declares AncestryDNA array V2.0, converter V1.0, human reference build 37.1 coordinates, and forward (+) strand alleles. Parse these declarations rather than guessing from positions. Preserve the exact build declaration and verify compatibility with the selected GRCh37 reference assets before normalization. Raw positions are 1-based; convert to internal 0-based positions by subtracting one.

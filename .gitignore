@@ -6,9 +6,11 @@ AncestryDNA.txt
 *.AncestryDNA.txt
 /uploads/
 /local-data/
+/pipeline/local-out/
 *.vcf
 *.vcf.gz
 *.vcf.gz.tbi
+*.vcf.gz.csi
 *.bcf
 
 # Node / Vite
