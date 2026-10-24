@@ -97,9 +97,18 @@ observation from the raw file.
 
 ## 5. Explorer integration
 
-`setup_cli watchlist` builds the watchlist from segment JSON(s) + the raw file
-and is reusable for additional chromosomes (pass more `--segments` and extend
-`--chroms`). Loci on unprocessed chromosomes are `ancestry_not_available`.
+Two surfaces, same logic:
+- Pipeline: `setup_cli watchlist` builds the watchlist from segment JSON(s) +
+  the raw file; reusable for more chromosomes (pass more `--segments`, extend
+  `--chroms`).
+- UI: a **Watchlist** tab in the explorer (`src/components/Watchlist.tsx` +
+  `src/domain/watchlist.ts` + `watchlistCatalog.ts`), driven by the bundle's
+  ancestry segments. Select a prioritized variant -> inspect its per-copy
+  ancestry segments -> read the population-specific evidence -> see the observed
+  genotype or testing gap. Existing tabs (Overview, Chromosomes, Conditions) are
+  preserved. The TS engine mirrors the Python engine and its guardrails.
+
+Loci on unprocessed chromosomes are `ancestry_not_available` on both surfaces.
 
 ## Verification
 
@@ -115,5 +124,6 @@ and is reusable for additional chromosomes (pass more `--segments` and extend
   variants).
 - Process additional chromosomes so more catalog loci get locus-specific
   ancestry instead of ancestry_not_available.
-- A UI watchlist view (select variant -> inspect per-copy segments -> evidence
-  -> observed genotype/testing gap) wiring this engine into the explorer.
+- Feed real pipeline provenance (raw_lookup observed status + harmonized
+  coordinates) into the UI watchlist, so the browser view matches the pipeline
+  run exactly rather than deriving observed status from the bundle.
