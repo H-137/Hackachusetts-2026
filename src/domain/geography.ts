@@ -253,15 +253,7 @@ export const GLOBAL_REGIONS: Record<string, GlobalRegion> = {
       "assignable; see Step 7.",
     lat: 52.2, lng: 19.1, color: "#d08770",
   },
-  AJ_PROXY: {
-    code: "AJ_PROXY", name: "AJ proxy (pilot stand-in)", superPopulation: "MID",
-    description:
-      "Step 7 PILOT STAND-IN, not real Ashkenazi data: a held-out set of real " +
-      "1000G individuals relabeled to exercise the expanded-panel path end to " +
-      "end. Any assignment to this label is a mechanism demonstration, not a " +
-      "validated AJ result.",
-    lat: 52.2, lng: 19.1, color: "#d08770",
-  },
+
   MID: {
     code: "MID", name: "Middle Eastern", superPopulation: "MID",
     description: "Middle Eastern reference group (gnomAD-style code).",

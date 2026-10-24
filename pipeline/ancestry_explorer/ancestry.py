@@ -153,6 +153,36 @@ def build_sample_map(
     return out_map, len(rows)
 
 
+def _subset_reference_to_query_sites(
+    reference_vcf: Path, query_vcf: Path, out_vcf: Path
+) -> Path:
+    """Restrict a reference panel to the positions present in the query VCF.
+
+    RFMix only uses SNPs shared between query and reference, so a large merged
+    panel (e.g. 1000G + an added group, ~1M sites x thousands of samples) can be
+    subset to the query's ~10k sites with no change to the result, while
+    avoiding loading the full matrix into memory (which OOM-kills RFMix). The
+    reference sample set is unchanged.
+    """
+    regions = out_vcf.parent / (out_vcf.stem + ".qsites.txt")
+    out_vcf.parent.mkdir(parents=True, exist_ok=True)
+    # Positions present in the query.
+    r = subprocess.run(
+        ["bcftools", "view", "-H", str(query_vcf)],
+        capture_output=True, text=True, check=False)
+    with open(regions, "w", encoding="utf-8") as fh:
+        for line in r.stdout.splitlines():
+            if not line:
+                continue
+            parts = line.split("\t", 2)
+            if len(parts) >= 2:
+                fh.write(f"{parts[0]}\t{parts[1]}\n")
+    _run(["bcftools", "view", "-R", str(regions), str(reference_vcf),
+          "-Oz", "-o", str(out_vcf)])
+    _run(["bcftools", "index", "-f", "-t", str(out_vcf)])
+    return out_vcf
+
+
 def run_rfmix(
     query_vcf: Path,
     reference_vcf: Path,
@@ -163,13 +193,25 @@ def run_rfmix(
     rfmix_bin: Path,
     generations: int = 8,
     extra_args: list[str] | None = None,
+    subset_reference_to_query: bool = True,
 ) -> Path:
-    """Invoke RFMix for one chromosome. Returns the .msp.tsv path."""
+    """Invoke RFMix for one chromosome. Returns the .msp.tsv path.
+
+    subset_reference_to_query: when True (default), the reference VCF is first
+    restricted to the query's sites. This keeps memory bounded for large panels
+    (RFMix loads the whole reference matrix) without changing the result, since
+    RFMix only uses query-reference shared SNPs.
+    """
     out_basename.parent.mkdir(parents=True, exist_ok=True)
+    ref_for_rfmix = reference_vcf
+    if subset_reference_to_query:
+        ref_for_rfmix = _subset_reference_to_query_sites(
+            reference_vcf, query_vcf,
+            out_basename.parent / (out_basename.name + ".ref_subset.vcf.gz"))
     cmd = [
         str(rfmix_bin),
         "-f", str(query_vcf),
-        "-r", str(reference_vcf),
+        "-r", str(ref_for_rfmix),
         "-m", str(sample_map),
         "-g", str(genetic_map),
         "-o", str(out_basename),
