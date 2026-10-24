@@ -8,11 +8,13 @@ This package is NOT a diagnostic tool.
 """
 
 from .annotate import annotate_all
+from .catalog import CATALOG, catalog, catalog_provenance
 from .composition import compose_by_span
 from .conditions import CURATED_CONDITIONS, manifest as condition_manifest
 from .family import resolve_parental_origin, summarize_trio
 from .pgs import parse_scoring_file, score_pgs000057
 from .raw_lookup import lookup_raw_rows
+from .watchlist import build_watchlist
 from .harmonize import HarmonizationReport, harmonize
 from .parser import ParseResult, parse_ancestrydna
 from .phasing import PhasingResult, phase_chromosome
@@ -38,4 +40,8 @@ __all__ = [
     "score_pgs000057",
     "parse_scoring_file",
     "lookup_raw_rows",
+    "catalog",
+    "catalog_provenance",
+    "CATALOG",
+    "build_watchlist",
 ]
