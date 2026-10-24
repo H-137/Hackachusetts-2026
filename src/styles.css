@@ -42,6 +42,15 @@ h3 {
 .subtitle {
   color: var(--muted);
   margin-top: -0.5rem;
+  line-height: 1.55;
+}
+
+/* A subtitle that follows a block (not a heading) shouldn't be tucked
+   upward — the negative margin-top is only for subtitles under headings. */
+.disclaimer + .subtitle,
+.overview.patient .subtitle + .subtitle,
+.overview.patient > .subtitle:last-child {
+  margin-top: 0.75rem;
 }
 
 .disclaimer {
@@ -49,9 +58,10 @@ h3 {
   border: 1px solid var(--border);
   border-left: 3px solid var(--warn);
   border-radius: 6px;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   color: var(--muted);
   font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 .choices {
@@ -440,7 +450,8 @@ ul.tight {
 }
 
 ul.tight li {
-  margin: 0.2rem 0;
+  margin: 0.35rem 0;
+  line-height: 1.5;
 }
 
 .sources {
@@ -512,7 +523,7 @@ ul.tight li {
   z-index: 0;
   /* Shift the sphere right and slightly down into the open area so it clears
      the upper panels without being pushed off the bottom. */
-  transform: translate(24%, 12%);
+  transform: translate(24%, 16%);
 }
 
 /* The globe's own DOM subtree (canvas + the scene container react-globe.gl
@@ -1075,7 +1086,7 @@ body.has-globe-bg .app > .subtitle {
   padding: 0.5rem 0.7rem;
   border-radius: 10px;
   font-size: 0.88rem;
-  line-height: 1.35;
+  line-height: 1.5;
 }
 
 .amsg p {
@@ -1238,12 +1249,12 @@ body.has-globe-bg .assistant {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.1rem;
+  gap: 0.25rem;
   background: transparent;
   color: var(--text);
   border: none;
   border-radius: 6px;
-  padding: 0.5rem 0.7rem;
+  padding: 0.55rem 0.7rem;
   text-align: left;
   font-weight: 600;
 }
@@ -1256,6 +1267,7 @@ body.has-globe-bg .assistant {
   font-size: 0.75rem;
   font-weight: 400;
   color: var(--muted);
+  line-height: 1.45;
 }
 
 .role-toggle {
@@ -1831,12 +1843,29 @@ ul.tight li {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+
+.condition-variant-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  line-height: 1.55;
+}
+
+/* Inside the variant body the subtitle lines stack, so the global
+   negative margin-top (meant to tuck a subtitle under a heading) would
+   cram them together. Reset it and let the flex gap do the spacing. */
+.condition-variant-body .subtitle {
+  margin-top: 0;
+  line-height: 1.55;
 }
 
 .condition-variant-why {
-  margin-top: 0.3rem;
+  margin-top: 0.1rem;
   font-size: 0.88rem;
+  line-height: 1.55;
 }
 
 .watchlist-detail-head {
@@ -1944,13 +1973,17 @@ ul.tight li {
   /* Cap to the viewport so the tab never scrolls the page. */
   height: calc(100vh - 230px);
   max-height: calc(100vh - 230px);
-  align-items: start;
+  /* Stretch both windows to a shared row height so the chromosome window
+     matches the region-info window instead of running taller. The taller
+     content (the chromosome track) scrolls inside its own body. */
+  align-items: stretch;
 }
 
 /* Compact chromosome window: bounded to the stage, scrolls internally if the
-   track is taller than the available height. */
+   track is taller than the available height. Matches the region-info window. */
 .viewer-panel.compact {
   max-height: 100%;
+  min-height: 0;
 }
 
 .viewer-panel.compact .viewer-body {
