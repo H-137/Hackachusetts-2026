@@ -1,0 +1,65 @@
+{
+  "registry_version": "1.0",
+  "description": "Reference-panel registry for SNPshot local ancestry (Step 7). Each panel is a versioned, provenance-tracked descriptor consumed by ancestry.py / composition.py / watchlist.py. Population lists are NOT hardcoded in code; they are read from each panel's sample map. Sample maps and VCFs are gitignored (see .gitignore); only labels/counts are read.",
+  "panels": [
+    {
+      "panel_id": "1kg_phase3_26pop",
+      "version": "v1.0",
+      "description": "1000 Genomes Phase 3 — the historical 26 fine-grain populations (baseline). Unchanged from the pre-Step-7 pipeline.",
+      "genome_build": "GRCh37",
+      "level": "pop",
+      "sample_map": "pipeline/reference/assets/panel_meta/samples.panel",
+      "reference_vcf_template": "pipeline/reference/assets/panel/ALL.chr{chrom}.phase3.genotypes.vcf.gz",
+      "sources": [
+        {
+          "name": "1000 Genomes Project Phase 3",
+          "role": "Reference populations + phased haplotypes (GRCh37 low-coverage call set).",
+          "citation": "1000 Genomes Project Consortium, Nature 526:68 (2015).",
+          "access": "open",
+          "url": "https://www.internationalgenome.org/data",
+          "notes": "2504 unrelated samples; 26 populations across 5 super-populations. No Ashkenazi Jewish group."
+        }
+      ],
+      "notes": [
+        "This is the panel the baseline chr22 run and all existing assets were produced with.",
+        "Super-population rollup is derived from the super_pop column of samples.panel."
+      ]
+    },
+    {
+      "panel_id": "1kg_phase3_plus_aj_v2",
+      "version": "v2.0",
+      "description": "Expanded panel: 1000 Genomes Phase 3 (26 pops) PLUS a REAL Ashkenazi Jewish (AJ) reference group of 8 unrelated, modern, diploid individuals from the public Allen Ancient DNA Resource v66 Human Origins 'Jew_Ashkenazi' set. Adds one resolvable population the baseline cannot label.",
+      "genome_build": "GRCh37",
+      "level": "pop",
+      "sample_map": "pipeline/reference/assets/panel_meta/samples.expanded.panel",
+      "reference_vcf_template": "pipeline/reference/assets/panel/EXP.chr{chrom}.v2.vcf.gz",
+      "superpop_overrides": {
+        "AJ": "MID"
+      },
+      "sources": [
+        {
+          "name": "1000 Genomes Project Phase 3",
+          "role": "Base 26 reference populations + phased haplotypes.",
+          "citation": "1000 Genomes Project Consortium, Nature 526:68 (2015).",
+          "access": "open",
+          "url": "https://www.internationalgenome.org/data",
+          "notes": "2504 samples; disjoint sample ids from the AADR source (no duplicate individuals)."
+        },
+        {
+          "name": "Allen Ancient DNA Resource v66 / Human Origins (present-day)",
+          "role": "Real Ashkenazi Jewish reference individuals (AADR group 'Jew_Ashkenazi' -> AJ).",
+          "citation": "Mallick S, Micco A, Mah M, et al. Sci Data 11:182 (2024); PMID 37066305.",
+          "access": "open",
+          "url": "https://doi.org/10.7910/DVN/FFIDCW",
+          "notes": "8 unrelated (Family relations '..'), modern (Date BP 0), diploid '.HO' Affymetrix Human Origins individuals. Source .geno md5 verified (9f9f0629...); TGENO decoder cross-verified against DReichLab geno_single. 8054 chr22 biallelic SNPs; per-sample missingness 0.0-0.8%. Reconciled to 1000G REF/ALT (7646 shared; 408 unreconcilable sites dropped, never strand-flipped) and Beagle-phased against the 1000G panel (7616 phased sites)."
+        }
+      ],
+      "notes": [
+        "AJ rolls up to MID (Middle-Eastern / West-Eurasian), deliberately NOT merged into EUR, so AJ segments stay distinguishable from 1000G European sub-populations.",
+        "Array ascertainment: AADR Human Origins SNPs are a fixed, largely European-ascertained set. Only markers shared with the 1000G panel and the query are used for RFMix.",
+        "8 AJ individuals is a small reference group; chr22 AJ assignments are experimental and not a validated ancestry result. Accuracy is reported via the bounded held-out check.",
+        "The larger AJ WGS resource (The Ashkenazi Genome Consortium, EGA EGAC00001000151, 128 genomes) is access-controlled and NOT integrated here; see docs/step-07 for the application route."
+      ]
+    }
+  ]
+}
