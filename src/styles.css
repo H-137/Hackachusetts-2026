@@ -498,8 +498,9 @@ ul.tight li {
   position: fixed;
   inset: 0;
   z-index: 0;
-  /* Shift the sphere to the right so page content overlays the left side. */
-  transform: translateX(22%);
+  /* Shift the sphere right and slightly down into the open area so it clears
+     the upper panels without being pushed off the bottom. */
+  transform: translate(24%, 12%);
 }
 
 /* The globe's own DOM subtree (canvas + the scene container react-globe.gl
@@ -526,6 +527,14 @@ body.has-globe-bg .chrom-tab,
 body.has-globe-bg .chrom-stage,
 body.has-globe-bg .globe-stage {
   pointer-events: none;
+}
+
+/* The globe tab is a non-scrolling one-pager. Clip overflow so the fixed,
+   translated globe canvas can't create phantom scroll space below the content.
+   (Scoped to the globe state so other tabs still scroll normally.) */
+body.has-globe-bg,
+html:has(body.has-globe-bg) {
+  overflow: hidden;
 }
 
 body.has-globe-bg .tabs,
@@ -1833,21 +1842,28 @@ ul.tight li {
 /* Two thin windows (chromosome | region info) then an open globe column. */
 .chrom-stage.patient-stage {
   display: grid;
-  grid-template-columns: minmax(240px, 300px) minmax(240px, 320px) 1fr;
+  grid-template-columns: minmax(230px, 290px) minmax(230px, 310px) 1fr;
   gap: 1rem;
-  height: calc(100vh - 290px);
-  min-height: 360px;
+  /* Cap to the viewport so the tab never scrolls the page. */
+  height: calc(100vh - 230px);
+  max-height: calc(100vh - 230px);
   align-items: start;
 }
 
-/* A compact chromosome window: fits the vertical track, no internal scroll. */
+/* Compact chromosome window: bounded to the stage, scrolls internally if the
+   track is taller than the available height. */
 .viewer-panel.compact {
-  height: auto;
   max-height: 100%;
 }
 
 .viewer-panel.compact .viewer-body {
-  overflow: visible;
+  overflow-y: auto;
+}
+
+/* Region-info window: also bounded, scrolls internally. */
+.patient-stage .patient-region {
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 .patient-region {
