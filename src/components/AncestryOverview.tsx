@@ -88,11 +88,14 @@ export function AncestryOverview({ bundle }: Props) {
         </p>
       </div>
 
-      <h3>Inferred ancestry composition</h3>
+      <h3>Inferred reference-population similarity</h3>
       <p className="subtitle">
-        Share of inferred ancestry across both chromosome copies, by base pairs.
-        Local ancestry is a model estimate relative to selected reference
-        populations, not an intrinsic ethnicity.
+        Share of the genome, by base pairs across both chromosome copies, whose
+        local ancestry is inferred to be most similar to each 1000 Genomes
+        reference population. This is inferred similarity to selected reference
+        populations, not an intrinsic ethnicity. Fine-grained (sub-continental)
+        resolution from sparse consumer-array data is not validated here;
+        probabilities are model marginals, not calibrated confidence.
       </p>
       <div className="composition-bar" role="img" aria-label="Ancestry composition bar">
         {composition.map((c) => (

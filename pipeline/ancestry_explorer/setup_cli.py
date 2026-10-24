@@ -18,11 +18,19 @@ from pathlib import Path
 
 from .harmonize import harmonize
 from .parser import parse_ancestrydna
+from .ancestry import (
+    build_rfmix_genetic_map,
+    build_sample_map,
+    parse_msp_to_segments,
+    run_rfmix,
+)
+from .phasing import phase_chromosome, phase_genome
 from .reference import (
     REPO_ROOT,
     SLICE_CHROM,
     SLICE_END,
     SLICE_START,
+    download_panel_chromosomes,
     load_manifest,
     run_setup,
 )
@@ -74,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("setup", help="Download and verify reference assets.")
-    sp.add_argument("--mode", choices=["slice", "full"], default="slice")
+    sp.add_argument("--mode", choices=["slice", "full", "phasing"], default="slice")
     sp.set_defaults(func=_cmd_setup)
 
     hp = sub.add_parser("harmonize", help="Harmonize an AncestryDNA file into a VCF.")
@@ -85,8 +93,125 @@ def main(argv: list[str] | None = None) -> int:
                     help="Use the single-chromosome slice reference and window.")
     hp.set_defaults(func=_cmd_harmonize)
 
+    dp = sub.add_parser("download-panel", help="Download full per-chromosome 1000G panels.")
+    dp.add_argument("--chroms", required=True,
+                    help="Comma-separated chromosomes, e.g. 20,21,22.")
+    dp.set_defaults(func=_cmd_download_panel)
+
+    pp = sub.add_parser("phase", help="Phase one chromosome of a harmonized VCF with Beagle.")
+    pp.add_argument("--gt", required=True, help="Harmonized sample .vcf.gz.")
+    pp.add_argument("--panel", required=True, help="Reference panel .vcf.gz for the chromosome.")
+    pp.add_argument("--chrom", required=True, help="Chromosome (e.g. 22).")
+    pp.add_argument("--out", required=True, help="Output prefix for phased VCF.")
+    pp.set_defaults(func=_cmd_phase)
+
+    gp = sub.add_parser("phase-genome", help="Phase several chromosomes against full panels.")
+    gp.add_argument("--gt", required=True, help="Harmonized sample .vcf.gz (genome-wide).")
+    gp.add_argument("--chroms", required=True, help="Comma-separated chromosomes, e.g. 20,21,22.")
+    gp.add_argument("--out-dir", required=True, help="Output directory for phased VCFs.")
+    gp.set_defaults(func=_cmd_phase_genome)
+
+    ap_ = sub.add_parser("ancestry", help="Run RFMix local ancestry on a phased chromosome.")
+    ap_.add_argument("--query", required=True, help="Phased query .vcf.gz for the chromosome.")
+    ap_.add_argument("--chrom", required=True, help="Chromosome (e.g. 22).")
+    ap_.add_argument("--sample-id", required=True, help="Query sample id (VCF column).")
+    ap_.add_argument("--out-dir", required=True, help="Output directory.")
+    ap_.add_argument("--range", default=None, help="Optional Mbp range, e.g. 20-22.")
+    ap_.set_defaults(func=_cmd_ancestry)
+
     args = ap.parse_args(argv)
     return args.func(args)
+
+
+def _cmd_ancestry(args: argparse.Namespace) -> int:
+    manifest = load_manifest()
+    rfmix = REPO_ROOT / manifest["assets"]["ancestry_tool_rfmix"]["local_path"]
+    panel_dir = REPO_ROOT / manifest["assets"]["phased_panel"]["local_dir"]
+    gm_dir = REPO_ROOT / manifest["assets"]["genetic_map"]["local_dir"]
+    panel_meta = REPO_ROOT / "pipeline/reference/assets/panel_meta/samples.panel"
+    ref_vcf = panel_dir / f"ALL.chr{args.chrom}.phase3.genotypes.vcf.gz"
+
+    for p, what in [(rfmix, "RFMix binary"), (ref_vcf, "reference panel"),
+                    (panel_meta, "panel metadata")]:
+        if not p.exists():
+            print(f"{what} not found at {p}. Run setup/download-panel first.", file=sys.stderr)
+            return 2
+
+    out_dir = Path(args.out_dir)
+    gmap = build_rfmix_genetic_map(
+        gm_dir / f"plink.chr{args.chrom}.GRCh37.map", out_dir / f"rfmix.chr{args.chrom}.map")
+    sample_map, n_ref = build_sample_map(panel_meta, ref_vcf, out_dir / "sample_map.tsv")
+
+    extra = ["--analyze-range=" + args.range] if args.range else None
+    msp = run_rfmix(
+        query_vcf=Path(args.query), reference_vcf=ref_vcf, sample_map=sample_map,
+        genetic_map=gmap, chromosome=args.chrom,
+        out_basename=out_dir / f"rfmix.chr{args.chrom}", rfmix_bin=rfmix, extra_args=extra,
+    )
+    segments, summary = parse_msp_to_segments(
+        msp, args.sample_id, [], ref_vcf.name)
+    summary.reference_samples = n_ref
+
+    seg_out = out_dir / f"segments.chr{args.chrom}.json"
+    seg_out.write_text(json.dumps(segments, indent=2), encoding="utf-8")
+    json.dump({"ancestry": summary.as_dict(), "segments_file": str(seg_out)},
+              sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0
+
+
+def _cmd_phase_genome(args: argparse.Namespace) -> int:
+    manifest = load_manifest()
+    beagle = REPO_ROOT / manifest["assets"]["phasing_tool_beagle"]["local_path"]
+    conform = REPO_ROOT / manifest["assets"]["conform_gt"]["local_path"]
+    panel_dir = REPO_ROOT / manifest["assets"]["phased_panel"]["local_dir"]
+    gm_dir = REPO_ROOT / manifest["assets"]["genetic_map"]["local_dir"]
+    chroms = [c.strip() for c in args.chroms.split(",") if c.strip()]
+
+    report = phase_genome(
+        sample_vcf_gz=Path(args.gt),
+        chromosomes=chroms,
+        panel_dir=panel_dir,
+        genetic_map_dir=gm_dir,
+        out_dir=Path(args.out_dir),
+        beagle_jar=beagle,
+        conform_gt_jar=conform,
+    )
+    json.dump({"phase_genome": report}, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0 if report["all_allele_counts_preserved"] else 4
+
+
+def _cmd_download_panel(args: argparse.Namespace) -> int:
+    chroms = [c.strip() for c in args.chroms.split(",") if c.strip()]
+    report = download_panel_chromosomes(chroms)
+    json.dump(report, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0
+
+
+def _cmd_phase(args: argparse.Namespace) -> int:
+    manifest = load_manifest()
+    beagle = REPO_ROOT / manifest["assets"]["phasing_tool_beagle"]["local_path"]
+    conform = REPO_ROOT / manifest["assets"]["conform_gt"]["local_path"]
+    gm = REPO_ROOT / manifest["assets"]["genetic_map"]["local_dir"] / f"plink.chr{args.chrom}.GRCh37.map"
+    for p, what in [(beagle, "Beagle jar"), (gm, "genetic map")]:
+        if not p.exists():
+            print(f"{what} not found at {p}. Run `setup --mode phasing` first.", file=sys.stderr)
+            return 2
+
+    res = phase_chromosome(
+        sample_vcf_gz=Path(args.gt),
+        panel_vcf_gz=Path(args.panel),
+        genetic_map=gm,
+        chromosome=args.chrom,
+        out_prefix=Path(args.out),
+        beagle_jar=beagle,
+        conform_gt_jar=conform,
+    )
+    json.dump({"phasing": res.as_dict()}, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0 if res.allele_counts_preserved else 4
 
 
 if __name__ == "__main__":
