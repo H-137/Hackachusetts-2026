@@ -14,8 +14,8 @@ import { Assistant } from "./Assistant";
 import { ChromosomePairMenu } from "./ChromosomePairMenu";
 import { ChromosomeTrack } from "./ChromosomeTrack";
 import { ConditionPage, useConditionGroups } from "./ConditionPage";
+import { PatientRegionInfo } from "./PatientRegionInfo";
 import { RegionClinicalPanel } from "./RegionClinicalPanel";
-import { RegionDetail } from "./RegionDetail";
 import { VariantDetail } from "./VariantDetail";
 import { Watchlist } from "./Watchlist";
 
@@ -29,7 +29,7 @@ interface Props {
   onTabChange: (tab: string) => void;
 }
 
-type Tab = "overview" | "watchlist" | "chromosomes" | "conditions";
+type Tab = "overview" | "chromosomes" | "watchlist" | "conditions";
 
 /**
  * Integrated explorer (plan Step 6). Tabs for a comprehensive overview, the
@@ -121,16 +121,16 @@ export function Explorer({
           Overview
         </button>
         <button
+          className={tab === "chromosomes" ? "tab active" : "tab"}
+          onClick={() => setTab("chromosomes")}
+        >
+          Chromosome
+        </button>
+        <button
           className={tab === "watchlist" ? "tab active" : "tab"}
           onClick={() => setTab("watchlist")}
         >
           Watchlist
-        </button>
-        <button
-          className={tab === "chromosomes" ? "tab active" : "tab"}
-          onClick={() => setTab("chromosomes")}
-        >
-          Chromosomes
         </button>
         <button
           className={tab === "conditions" ? "tab active" : "tab"}
@@ -156,6 +156,7 @@ export function Explorer({
       {tab === "watchlist" && (
         <Watchlist
           bundle={bundle}
+          role={role}
           focusCondition={watchlistCondition}
           onOpenCondition={openCondition}
         />
@@ -201,79 +202,98 @@ export function Explorer({
             )}
           </div>
 
-          <div className={`chrom-stage${role === "clinician" ? " clinician" : ""}`}>
-            {/* Left: the viewer panel (menu + track + detail), self-scrolling
-                so the page stays a one-pager. */}
-            <div className="viewer-panel">
-              <div className="viewer-head">
-                <ChromosomePairMenu
-                  value={chrom}
-                  onChange={changeChrom}
-                />
-                <span className="subtitle">
-                  full chromosome · {formatBp(chromLength(chrom))}
-                </span>
+          {role === "patient" ? (
+            /* Patient: two thin windows (small chromosome | region info) side by
+               side, then an open column where the background globe shows
+               through — same as the old single-window-next-to-globe layout, but
+               the single window is split into two. */
+            <div className="chrom-stage patient-stage">
+              <div className="viewer-panel compact">
+                <div className="viewer-head">
+                  <ChromosomePairMenu value={chrom} onChange={changeChrom} />
+                </div>
+                <div className="viewer-body">
+                  <div className="track-scroll">
+                    <ChromosomeTrack
+                      bundle={bundle}
+                      chromosome={chrom}
+                      viewStart={view.start}
+                      viewEnd={view.end}
+                      selected={region}
+                      orientation="vertical"
+                      onSelectRegion={onSelectRegion}
+                      onSelectVariant={onSelectVariant}
+                    />
+                  </div>
+                  <div className="legend small">
+                    <span>
+                      <span className="seg-dot" style={{ background: "#4b9fe1" }} />{" "}
+                      gene
+                    </span>
+                    <span>hatched = uncertain</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="viewer-body">
-                <div className="track-scroll">
-                  <ChromosomeTrack
-                    bundle={bundle}
-                    chromosome={chrom}
-                    viewStart={view.start}
-                    viewEnd={view.end}
-                    selected={region}
-                    onSelectRegion={onSelectRegion}
-                    onSelectVariant={onSelectVariant}
-                  />
-                </div>
+              <PatientRegionInfo bundle={bundle} region={region} />
 
-                <div className="legend small">
-                  <span>
-                    <span className="seg-dot" style={{ background: "#4b9fe1" }} />{" "}
-                    gene region
-                  </span>
-                  <span>
-                    <span className="seg-dot" style={{ background: "#e5534b" }} />{" "}
-                    curated variant
-                  </span>
-                  <span>thin ticks = assayed markers</span>
-                  <span>hatched = uncertain / unknown</span>
-                </div>
-
-                {!region && (
-                  <p className="subtitle">
-                    Click a gene region (blue) or an ancestry segment to inspect
-                    it. Click a red marker for variant detail.
-                  </p>
-                )}
-                {/* Patient view keeps the rich region detail (with the research
-                    insight) in the left viewer. Clinician view moves region
-                    insights + variants to the right panel to keep this a
-                    one-pager. */}
-                {region && role === "patient" && (
-                  <RegionDetail
-                    bundle={bundle}
-                    region={region}
-                    onSelectVariant={onSelectVariant}
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Right column is role-dependent: patients get the background
-                globe (shows through this open column); clinicians get relevant
-                region insights instead of a decorative globe. */}
-            {role === "patient" ? (
+              {/* Open column: the full-page background globe shows through. */}
               <div className="globe-stage" aria-hidden="true" />
-            ) : (
+            </div>
+          ) : (
+            /* Clinician: stacked viewer + lollipop/region clinical panel. */
+            <div className="chrom-stage clinician">
+              <div className="viewer-panel">
+                <div className="viewer-head">
+                  <ChromosomePairMenu value={chrom} onChange={changeChrom} />
+                  <span className="subtitle">
+                    full chromosome · {formatBp(chromLength(chrom))}
+                  </span>
+                </div>
+
+                <div className="viewer-body">
+                  <div className="track-scroll">
+                    <ChromosomeTrack
+                      bundle={bundle}
+                      chromosome={chrom}
+                      viewStart={view.start}
+                      viewEnd={view.end}
+                      selected={region}
+                      orientation="horizontal"
+                      onSelectRegion={onSelectRegion}
+                      onSelectVariant={onSelectVariant}
+                    />
+                  </div>
+
+                  <div className="legend small">
+                    <span>
+                      <span className="seg-dot" style={{ background: "#4b9fe1" }} />{" "}
+                      gene region
+                    </span>
+                    <span>
+                      <span className="seg-dot" style={{ background: "#e5534b" }} />{" "}
+                      curated variant
+                    </span>
+                    <span>thin ticks = assayed markers</span>
+                    <span>hatched = uncertain / unknown</span>
+                  </div>
+
+                  {!region && (
+                    <p className="subtitle">
+                      Click a gene region (blue) or an ancestry segment to inspect
+                      it. Click a red marker for variant detail.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <RegionClinicalPanel
                 bundle={bundle}
                 region={region}
                 onSelectVariant={onSelectVariant}
               />
-            )}
-          </div>
+            </div>
+          )}
         </section>
       )}
 

@@ -14,6 +14,7 @@ import {
   processedChromosomes,
 } from "../domain/watchlistCatalog";
 import { regionDisplayName } from "../domain/geography";
+import { conditionResources, makeConditionInfo } from "../domain/conditionInfo";
 
 interface Props {
   bundle: AnalysisBundle;
@@ -53,31 +54,46 @@ export function ConditionPage({
 
   if (!group) return <p className="subtitle">No conditions available.</p>;
 
-  // ---------------- Patient view ----------------
+  // ---------------- Patient view (informational) ----------------
   if (role === "patient") {
-    const hasObserved = group.observed > 0;
+    // Generated from the condition's catalog variants — works for any condition.
+    const info = makeConditionInfo(
+      group.condition,
+      group.entries.map((e) => e.variant),
+    );
     return (
       <section className="condition-page patient" aria-label={`Condition: ${group.condition}`}>
         <h3>{group.condition}</h3>
-        <p className="subtitle">
-          {group.gene} · {group.inheritance}
-        </p>
+        <p className="condition-summary">{info.summary}</p>
+        <h4>How it's inherited</h4>
+        <p>{info.inheritance_plain}</p>
+        <h4>About this condition</h4>
+        <p>{info.about}</p>
+
+        {info.resources.length > 0 && (
+          <>
+            <ul className="resource-list">
+              {info.resources.map((r) => (
+                <li key={r.url}>
+                  <a href={r.url} target="_blank" rel="noopener noreferrer">
+                    {r.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="subtitle">
+              General references from public health and genetics databases (NIH /
+              NCBI). They describe the condition in general, not you.
+            </p>
+          </>
+        )}
+
         <div className="disclaimer" role="note">
-          {hasObserved ? (
-            <>
-              This DNA test looked at a few specific spots related to this
-              condition and found something worth discussing with your healthcare
-              provider or a genetic counselor, who can arrange proper confirmatory
-              testing. This is not a diagnosis.
-            </>
-          ) : (
-            <>
-              This DNA test checks only a few specific spots for this condition.
-              Not finding them here does not rule the condition out, because most
-              of it is not measured. If you have questions or a family history,
-              talk with your provider or a genetic counselor.
-            </>
-          )}
+          This is general information, not a statement about you and not a
+          diagnosis. A consumer DNA test checks only a few specific spots, so it
+          cannot confirm or rule this out. Your healthcare provider or a genetic
+          counselor is the right person to tell you whether any of this applies to
+          you.
         </div>
       </section>
     );
@@ -128,6 +144,28 @@ export function ConditionPage({
         Confirmatory clinical testing is required to establish presence or
         absence.
       </div>
+
+      {(() => {
+        const resources = conditionResources(
+          group.gene,
+          group.entries.map((e) => e.variant),
+        );
+        if (resources.length === 0) return null;
+        return (
+          <>
+            <h4>Further reading (credible sources)</h4>
+            <ul className="resource-list">
+              {resources.map((r) => (
+                <li key={r.url}>
+                  <a href={r.url} target="_blank" rel="noopener noreferrer">
+                    {r.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
+        );
+      })()}
     </section>
   );
 }

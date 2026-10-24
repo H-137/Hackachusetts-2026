@@ -71,8 +71,8 @@ export function App() {
   }, []);
 
   // The globe is a patient-facing visual; clinicians get clinical insights
-  // instead. Only render the background globe on the Chromosomes tab in Patient
-  // mode.
+  // instead. Render the full-page background globe on the Chromosome tab in
+  // Patient mode (the two-window layout overlays it with translucent panels).
   const showGlobeBg =
     view.kind === "explorer" &&
     explorerTab === "chromosomes" &&

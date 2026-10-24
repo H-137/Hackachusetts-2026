@@ -18,6 +18,8 @@ interface Props {
   selected: SelectedRegion | null;
   onSelectRegion: (region: SelectedRegion) => void;
   onSelectVariant: (variant: VariantObservation) => void;
+  /** "horizontal" (clinician, flows with lollipop) or "vertical" (patient). */
+  orientation?: "horizontal" | "vertical";
 }
 
 // Horizontal layout: position runs left -> right. Two copy rows stack; a
@@ -42,7 +44,14 @@ const SVG_H = TOP + ROW_H * 2 + ROW_GAP + 12 + LANE_H + RULER_H;
  * clicking a marker opens that variant. The layout is horizontal to flow with
  * the horizontal lollipop chart in the clinician panel.
  */
-export function ChromosomeTrack({
+export function ChromosomeTrack(props: Props) {
+  if (props.orientation === "vertical") {
+    return <VerticalTrack {...props} />;
+  }
+  return <HorizontalTrack {...props} />;
+}
+
+function HorizontalTrack({
   bundle,
   chromosome,
   viewStart,
@@ -347,4 +356,286 @@ function buildRuler(start: number, end: number): number[] {
   const first = Math.ceil(start / step) * step;
   for (let t = first; t < end; t += step) ticks.push(t);
   return ticks;
+}
+
+// Vertical layout constants: position runs top -> bottom. Two copy columns sit
+// side by side; a gene/marker lane sits to their right; a bp ruler runs down
+// the left.
+const V_RULER_W = 46;
+const V_COPY_W = 44;
+const V_COPY_GAP = 12;
+const V_COPY1_X = V_RULER_W + 8;
+const V_COPY2_X = V_COPY1_X + V_COPY_W + V_COPY_GAP;
+const V_LANE_X = V_COPY2_X + V_COPY_W + 14;
+const V_SVG_W = V_LANE_X + 96;
+const V_TOP = 22;
+const V_TRACK_H = 460;
+const V_SVG_H = V_TOP + V_TRACK_H + 18;
+
+/**
+ * Vertical ancestry viewer (patient view). Position runs top to bottom; the two
+ * copies are side-by-side vertical columns, with a gene/marker lane to the
+ * right and a bp ruler down the left. Same interactions as the horizontal
+ * track.
+ */
+function VerticalTrack({
+  bundle,
+  chromosome,
+  viewStart,
+  viewEnd,
+  selected,
+  onSelectRegion,
+  onSelectVariant,
+}: Props) {
+  const len = chromLength(chromosome);
+  const span = Math.max(1, viewEnd - viewStart);
+
+  const yOf = (pos0: number) => V_TOP + ((pos0 - viewStart) / span) * V_TRACK_H;
+  const hOf = (start0: number, end0: number) =>
+    Math.max(
+      0.5,
+      ((Math.min(end0, viewEnd) - Math.max(start0, viewStart)) / span) * V_TRACK_H,
+    );
+
+  const segsByCopy = useMemo(() => {
+    const result: Record<1 | 2, AncestrySegment[]> = { 1: [], 2: [] };
+    for (const s of bundle.segments) {
+      if (s.chromosome !== chromosome) continue;
+      if (s.end_0based_exclusive <= viewStart || s.start_0based >= viewEnd) continue;
+      result[s.copy_index].push(s);
+    }
+    return result;
+  }, [bundle.segments, chromosome, viewStart, viewEnd]);
+
+  const genes = useMemo(
+    () =>
+      bundle.genes.filter(
+        (g) =>
+          g.chromosome === chromosome &&
+          g.end_0based_exclusive > viewStart &&
+          g.start_0based < viewEnd,
+      ),
+    [bundle.genes, chromosome, viewStart, viewEnd],
+  );
+
+  const inWindow = useMemo(
+    () =>
+      bundle.variants.filter(
+        (v) =>
+          v.chromosome === chromosome &&
+          v.position_0based >= viewStart &&
+          v.position_0based < viewEnd,
+      ),
+    [bundle.variants, chromosome, viewStart, viewEnd],
+  );
+  const coverageMarkers = useMemo(
+    () => inWindow.filter((v) => isCoverageMarker(v)),
+    [inWindow],
+  );
+  const variants = useMemo(
+    () => inWindow.filter((v) => !isCoverageMarker(v)),
+    [inWindow],
+  );
+
+  const ruler = useMemo(() => buildRuler(viewStart, viewEnd), [viewStart, viewEnd]);
+
+  const copyColumn = (copy: 1 | 2, x: number) =>
+    segsByCopy[copy].map((s, i) => {
+      const region = regionFor(s.ancestry_label);
+      const y = yOf(s.start_0based);
+      const h = hOf(s.start_0based, s.end_0based_exclusive);
+      const uncertain = s.assignment_status !== "assigned";
+      const isSel =
+        selected &&
+        selected.chromosome === chromosome &&
+        s.start_0based < selected.end_0based_exclusive &&
+        s.end_0based_exclusive > selected.start_0based;
+      return (
+        <g key={`${copy}-${i}`}>
+          <rect
+            x={x}
+            y={y}
+            width={V_COPY_W}
+            height={h}
+            rx={3}
+            fill={s.assignment_status === "unknown" ? "url(#hatchUnknown)" : region.color}
+            fillOpacity={uncertain ? 0.55 : 0.92}
+            stroke={isSel ? "#fff" : "none"}
+            strokeWidth={isSel ? 1.5 : 0}
+            tabIndex={0}
+            role="button"
+            aria-label={`Copy ${copy} ${region.name}, ${s.assignment_status}, ${formatBp(
+              s.end_0based_exclusive - s.start_0based,
+            )}`}
+            style={{ cursor: "pointer" }}
+            onClick={() =>
+              onSelectRegion({
+                chromosome,
+                start_0based: s.start_0based,
+                end_0based_exclusive: s.end_0based_exclusive,
+              })
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ")
+                onSelectRegion({
+                  chromosome,
+                  start_0based: s.start_0based,
+                  end_0based_exclusive: s.end_0based_exclusive,
+                });
+            }}
+          >
+            <title>
+              Copy {copy} · {region.name} · {s.assignment_status} ·{" "}
+              {formatBp(s.end_0based_exclusive - s.start_0based)}
+            </title>
+          </rect>
+          {uncertain && s.assignment_status === "uncertain" && h > 6 && (
+            <rect
+              x={x}
+              y={y}
+              width={V_COPY_W}
+              height={h}
+              rx={3}
+              fill="url(#hatchUncertain)"
+              pointerEvents="none"
+            />
+          )}
+        </g>
+      );
+    });
+
+  return (
+    <svg
+      width={V_SVG_W}
+      height={V_SVG_H}
+      viewBox={`0 0 ${V_SVG_W} ${V_SVG_H}`}
+      className="chrom-track"
+      role="group"
+      aria-label={`Chromosome ${chromosome} ancestry tracks (vertical)`}
+    >
+      <defs>
+        <pattern id="hatchUncertain" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+          <rect width="6" height="6" fill="transparent" />
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#0f1419" strokeWidth="1.6" />
+        </pattern>
+        <pattern id="hatchUnknown" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+          <rect width="8" height="8" fill="#2a323c" />
+          <line x1="0" y1="0" x2="0" y2="8" stroke="#4c566a" strokeWidth="2" />
+        </pattern>
+      </defs>
+
+      {/* Column headers */}
+      <text x={V_COPY1_X + V_COPY_W / 2} y={14} fontSize={11} fill="#9aa7b4" textAnchor="middle">
+        copy 1
+      </text>
+      <text x={V_COPY2_X + V_COPY_W / 2} y={14} fontSize={11} fill="#9aa7b4" textAnchor="middle">
+        copy 2
+      </text>
+
+      {/* bp ruler down the left side */}
+      {ruler.map((t) => {
+        const y = yOf(t);
+        return (
+          <g key={t}>
+            <line x1={V_RULER_W - 2} y1={y} x2={V_RULER_W + 4} y2={y} stroke="#5e6b78" strokeWidth={1} />
+            <text x={V_RULER_W - 6} y={y + 3} fontSize={9} fill="#9aa7b4" textAnchor="end">
+              {formatBp(toDisplayPosition(t))}
+            </text>
+          </g>
+        );
+      })}
+
+      {copyColumn(1, V_COPY1_X)}
+      {copyColumn(2, V_COPY2_X)}
+
+      {/* Coverage markers: thin horizontal ticks on the lane. */}
+      {coverageMarkers.map((v) => {
+        const y = yOf(v.position_0based);
+        return (
+          <line key={v.variant_key} x1={V_LANE_X} y1={y} x2={V_LANE_X + 8} y2={y} stroke="#5e7488" strokeWidth={1}>
+            <title>assayed marker · coverage only</title>
+          </line>
+        );
+      })}
+
+      {/* Genes: a labeled bracket at the gene's position. */}
+      {genes.map((g) => {
+        const y1 = yOf(Math.max(g.start_0based, viewStart));
+        const y2 = yOf(Math.min(g.end_0based_exclusive, viewEnd));
+        const h = Math.max(3, y2 - y1);
+        return (
+          <g key={g.gene}>
+            <rect
+              x={V_LANE_X + 12}
+              y={y1}
+              width={6}
+              height={h}
+              rx={2}
+              fill="#4b9fe1"
+              tabIndex={0}
+              role="button"
+              aria-label={`Gene ${g.gene}, select region`}
+              style={{ cursor: "pointer" }}
+              onClick={() =>
+                onSelectRegion({
+                  chromosome,
+                  start_0based: g.start_0based,
+                  end_0based_exclusive: g.end_0based_exclusive,
+                  gene: g.gene,
+                })
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ")
+                  onSelectRegion({
+                    chromosome,
+                    start_0based: g.start_0based,
+                    end_0based_exclusive: g.end_0based_exclusive,
+                    gene: g.gene,
+                  });
+              }}
+            >
+              <title>{g.gene}</title>
+            </rect>
+            <text x={V_LANE_X + 22} y={y1 + Math.min(h / 2, 10) + 3} fontSize={11} fill="#4b9fe1">
+              {g.gene}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Curated variants: red dots on the lane. */}
+      {variants.map((v) => {
+        const y = yOf(v.position_0based);
+        return (
+          <circle
+            key={v.variant_key}
+            cx={V_LANE_X + 4}
+            cy={y}
+            r={5}
+            fill="#e5534b"
+            stroke="#0f1419"
+            strokeWidth={1}
+            tabIndex={0}
+            role="button"
+            aria-label={`Variant ${v.rsid ?? v.variant_key} at position ${toDisplayPosition(
+              v.position_0based,
+            )}`}
+            style={{ cursor: "pointer" }}
+            onClick={() => onSelectVariant(v)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") onSelectVariant(v);
+            }}
+          >
+            <title>
+              {v.rsid ?? v.variant_key} ({v.measurement_status})
+            </title>
+          </circle>
+        );
+      })}
+
+      <text x={V_RULER_W - 6} y={V_SVG_H - 2} fontSize={9} fill="#64727f" textAnchor="end">
+        of {formatBp(len)}
+      </text>
+    </svg>
+  );
 }

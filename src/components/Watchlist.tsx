@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { Role } from "../App";
 import type { AnalysisBundle } from "../domain/explorer";
 import {
   buildWatchlist,
@@ -15,6 +16,7 @@ import { formatBp, toDisplayPosition } from "../domain/explorer";
 
 interface Props {
   bundle: AnalysisBundle;
+  role: Role;
   /** When set, pre-select the first variant for this condition. */
   focusCondition?: string | null;
   /** Jump to the Conditions tab for a condition. */
@@ -42,7 +44,12 @@ const CATEGORY_BADGE: Record<PriorityCategory, string> = {
  * prioritized by local ancestry at the variant's own locus (both copies), with
  * transparent categories and explanations rather than invented risk numbers.
  */
-export function Watchlist({ bundle, focusCondition, onOpenCondition }: Props) {
+export function Watchlist({
+  bundle,
+  role,
+  focusCondition,
+  onOpenCondition,
+}: Props) {
   const processed = useMemo(
     () => processedChromosomes(bundle.segments),
     [bundle.segments],
@@ -55,6 +62,10 @@ export function Watchlist({ bundle, focusCondition, onOpenCondition }: Props) {
     () => buildWatchlist(WATCHLIST_CATALOG, bundle.segments, processed, observed),
     [bundle.segments, processed, observed],
   );
+
+  if (role === "patient") {
+    return <PatientWatchlist entries={entries} />;
+  }
 
   const focusId = focusCondition
     ? entries.find((e) => e.variant.condition === focusCondition)?.variant.variant_id
@@ -256,5 +267,66 @@ function WatchlistDetail({
         </ul>
       </details>
     </div>
+  );
+}
+
+/**
+ * Patient view of the watchlist: a gentle, non-alarming list of topics worth
+ * raising with your doctor. It assumes the clinician leads on any next step —
+ * it never tells the patient to act, diagnose, or interpret. No raw variants,
+ * no ancestry jargon, no priority categories; one plain-language topic per
+ * condition.
+ */
+function PatientWatchlist({ entries }: { entries: WatchlistEntry[] }) {
+  // One topic per condition; keep the highest-priority entry's framing.
+  const byCondition = new Map<string, WatchlistEntry>();
+  for (const e of entries) {
+    const existing = byCondition.get(e.variant.condition);
+    if (!existing) byCondition.set(e.variant.condition, e);
+  }
+  const topics = Array.from(byCondition.values());
+
+  return (
+    <section aria-label="Topics to discuss with your doctor" className="patient-watchlist">
+      <h2>Topics to discuss with your doctor</h2>
+      <p className="subtitle">
+        Based on this consumer DNA test, here are things that may be worth
+        mentioning at your next appointment. This is background for a
+        conversation — not a diagnosis, and not a to-do list. Your healthcare
+        provider decides whether anything here matters for you and what, if
+        anything, to do next.
+      </p>
+
+      <ul className="topic-list">
+        {topics.map((e) => {
+          const observed = e.priority_category === "observed_finding";
+          return (
+            <li key={e.variant.condition} className="topic-card">
+              <div className="topic-head">
+                <strong>{e.variant.condition}</strong>
+                {observed && (
+                  <span className="badge warn">worth asking about</span>
+                )}
+              </div>
+              <p className="topic-text">
+                {observed
+                  ? "This test looked at a spot related to this condition and found something your provider may want to look into further with proper testing."
+                  : "This condition is one where ancestry background can be relevant. Your provider can tell you whether any screening or testing makes sense for you."}
+              </p>
+              <p className="topic-ask">
+                You might ask: “Is there anything about {e.variant.condition.toLowerCase()} I should think about, given my background or family history?”
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="disclaimer" role="note">
+        A consumer DNA test checks only a few specific spots. Not finding
+        something here does not rule it out. Please rely on your healthcare
+        provider or a genetic counselor for any decisions — they can arrange
+        confirmatory testing if it is appropriate for you.
+      </div>
+    </section>
   );
 }

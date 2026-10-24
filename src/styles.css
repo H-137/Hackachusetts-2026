@@ -530,6 +530,8 @@ body.has-globe-bg .globe-stage {
 
 body.has-globe-bg .tabs,
 body.has-globe-bg .viewer-panel,
+body.has-globe-bg .patient-region,
+body.has-globe-bg .region-caption-bar,
 body.has-globe-bg .globe-hero-caption,
 body.has-globe-bg .drawer,
 body.has-globe-bg .disclaimer,
@@ -1741,4 +1743,144 @@ ul.tight li {
 
 .watchlist-detail-head h3 {
   margin: 0;
+}
+
+/* ---------- Patient: watchlist topics + condition info ---------- */
+
+.patient-watchlist {
+  max-width: 760px;
+}
+
+.topic-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.topic-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.topic-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.topic-head strong {
+  font-size: 1.05rem;
+}
+
+.topic-text {
+  margin: 0.25rem 0;
+}
+
+.topic-ask {
+  margin: 0.4rem 0 0;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.condition-summary {
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.condition-page.patient {
+  max-width: 720px;
+}
+
+/* ---------- Resource / further-reading links ---------- */
+
+.resource-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.resource-list li a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.resource-list li a::before {
+  content: "↗";
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.resource-list li a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Patient chromosome tab: small chromosome | region info ---------- */
+
+/* Two thin windows (chromosome | region info) then an open globe column. */
+.chrom-stage.patient-stage {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(240px, 320px) 1fr;
+  gap: 1rem;
+  height: calc(100vh - 290px);
+  min-height: 360px;
+  align-items: start;
+}
+
+/* A compact chromosome window: fits the vertical track, no internal scroll. */
+.viewer-panel.compact {
+  height: auto;
+  max-height: 100%;
+}
+
+.viewer-panel.compact .viewer-body {
+  overflow: visible;
+}
+
+.patient-region {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.patient-region h4 {
+  margin-top: 0;
+}
+
+.patient-copy {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.patient-copy-label {
+  font-weight: 600;
+  min-width: 3.5rem;
+}
+
+.patient-anc {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.9rem;
 }

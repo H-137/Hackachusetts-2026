@@ -176,7 +176,19 @@ export const offlineAssistant: AssistantProvider = {
     if (/\b(risk|elevat|predispos|chance|likel|suscept|carrier)\b/i.test(lower)) {
       parts.push(describeRisk(ctx, lower));
     }
-    if (/\b(condition|disease|cancer|brca|tay|sickle|cystic|which)\b/i.test(lower)) {
+    // Route condition questions on generic words OR a mention of any condition
+    // name / gene actually present in this result (data-driven, not hard-coded).
+    const mentionsKnownCondition = ctx.conditions.some((c) => {
+      const words = `${c.condition} ${c.gene}`
+        .toLowerCase()
+        .split(/[\s/()]+/)
+        .filter((w) => w.length > 3);
+      return words.some((w) => lower.includes(w));
+    });
+    if (
+      mentionsKnownCondition ||
+      /\b(condition|disease|cancer|which|screen)\b/i.test(lower)
+    ) {
       parts.push(describeConditions(ctx, lower));
     }
     if (/\b(score|polygenic|pgs|percentile)\b/i.test(lower)) {
