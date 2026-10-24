@@ -953,3 +953,154 @@ body.has-globe-bg .app > .subtitle {
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+/* ---------- Assistant (chatbot) ---------- */
+
+.assistant {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 40;
+}
+
+.assistant-fab {
+  background: linear-gradient(180deg, var(--accent), #2f7fc0);
+  color: #06121d;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1.1rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.assistant-fab:hover {
+  filter: brightness(1.05);
+}
+
+.assistant-panel {
+  width: min(380px, calc(100vw - 32px));
+  height: min(520px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.assistant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-2);
+}
+
+.assistant-msgs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.amsg {
+  max-width: 92%;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.amsg p {
+  margin: 0 0 0.35rem;
+}
+
+.amsg p:last-child {
+  margin-bottom: 0;
+}
+
+.amsg-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #06121d;
+  font-weight: 500;
+}
+
+.amsg-assistant {
+  align-self: flex-start;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.amsg-sources {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.amsg-sources a {
+  color: var(--accent);
+}
+
+.assistant-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0 0.75rem 0.5rem;
+}
+
+.suggest-chip {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.suggest-chip:hover {
+  border-color: var(--accent);
+}
+
+.assistant-input {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.assistant-input input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+}
+
+.assistant-input button {
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+}
+
+.assistant-foot {
+  margin: 0;
+  padding: 0 0.75rem 0.6rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* The assistant is a fixed overlay and must stay interactive even when the
+   globe background makes layout wrappers click-through. */
+body.has-globe-bg .assistant {
+  pointer-events: auto;
+}

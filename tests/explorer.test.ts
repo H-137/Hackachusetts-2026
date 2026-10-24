@@ -19,6 +19,10 @@ import {
   buildRequest,
   offlineProvider,
 } from "../src/domain/regionResearch";
+import {
+  buildAssistantContext,
+  offlineAssistant,
+} from "../src/domain/assistant";
 
 const bundle = loadAnalysisBundle();
 
@@ -208,5 +212,59 @@ describe("window coverage summary (the analytical payoff of zooming)", () => {
     expect(anywhere.absence_note.toLowerCase()).toMatch(
       /not a reassuring negative|does not rule out|uninformative/,
     );
+  });
+});
+
+describe("results/methods assistant", () => {
+  it("builds a sanitized context with no raw alleles or genotypes", () => {
+    const ctx = buildAssistantContext(bundle, "overview");
+    const serialized = JSON.stringify(ctx);
+    expect(serialized).not.toMatch(/"genotype"/);
+    expect(serialized).not.toMatch(/[ACGT]\/[ACGT]/);
+    expect(ctx.composition.length).toBeGreaterThan(0);
+    expect(ctx.conditions.length).toBeGreaterThan(0);
+  });
+
+  it("answers an ancestry-composition question from results", async () => {
+    const ctx = buildAssistantContext(bundle);
+    const reply = await offlineAssistant.answer(
+      "what is my ancestry composition?",
+      ctx,
+    );
+    expect(reply.role).toBe("assistant");
+    expect(reply.text.toLowerCase()).toContain("composition");
+    // Always carries the not-a-diagnosis framing.
+    expect(reply.text.toLowerCase()).toContain("ancestry");
+    expect(reply.text.toLowerCase()).toMatch(/not .*medical advice|not a diagnosis|cannot rule/);
+  });
+
+  it("explains a method step and flags pending (backfill) stages honestly", async () => {
+    const ctx = buildAssistantContext(bundle);
+    const reply = await offlineAssistant.answer(
+      "how does local ancestry inference work?",
+      ctx,
+    );
+    expect(reply.text.toLowerCase()).toContain("rfmix");
+    // Step 4 is a backfill stage; the answer must not imply it really ran.
+    expect(reply.text.toLowerCase()).toContain("not yet wired");
+  });
+
+  it("never fabricates a reassuring negative for risk questions", async () => {
+    const ctx = buildAssistantContext(bundle);
+    const reply = await offlineAssistant.answer(
+      "am I at risk for cystic fibrosis?",
+      ctx,
+    );
+    const t = reply.text.toLowerCase();
+    expect(t).toMatch(/unmeasured|not a diagnosis|confirm|does not mean|not a clean bill/);
+  });
+
+  it("reports the unscorable score honestly", async () => {
+    const ctx = buildAssistantContext(bundle);
+    const reply = await offlineAssistant.answer(
+      "why is the coronary artery disease score unscorable?",
+      ctx,
+    );
+    expect(reply.text.toLowerCase()).toContain("unscorable");
   });
 });

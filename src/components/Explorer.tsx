@@ -9,6 +9,7 @@ import {
 import { regionFor } from "../domain/geography";
 import type { VariantObservation } from "../domain/types";
 import { AncestryOverview } from "./AncestryOverview";
+import { Assistant } from "./Assistant";
 import { ChromosomePairMenu } from "./ChromosomePairMenu";
 import { ChromosomeTrack } from "./ChromosomeTrack";
 import { ConditionPage } from "./ConditionPage";
@@ -269,6 +270,9 @@ export function Explorer({
           </div>
         </div>
       )}
+
+      {/* Assistant: present across all three tabs. */}
+      <Assistant bundle={bundle} activeTab={tab} />
     </div>
   );
 }
