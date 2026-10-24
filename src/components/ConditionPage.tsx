@@ -1,30 +1,78 @@
+import { useMemo, useState } from "react";
+import type { Role } from "../App";
 import type { AnalysisBundle } from "../domain/explorer";
+import { pgsCoverage } from "../domain/clinical";
 import { regionFor } from "../domain/geography";
 import type { VariantObservation } from "../domain/types";
+import { CarrierStatusTable } from "./CarrierStatusTable";
+import { CoveragePanel } from "./CoveragePanel";
 
 interface Props {
   bundle: AnalysisBundle;
+  role: Role;
   condition: string;
   onSelectVariant: (v: VariantObservation) => void;
 }
 
 /**
- * Condition page (Section 5): the curated variants actually examined for this
- * condition AND the relevant variants that are NOT in the dataset. Absence is
- * explicitly framed as "not measured", never as a reassuring negative.
+ * Condition page, role-aware.
+ *  - Clinician: carrier status, per-variant provenance, the full coverage panel,
+ *    PGS coverage transparency (replaces the composite score status), a VUS /
+ *    low-evidence toggle (default off), and a collapsed condition explainer.
+ *  - Patient: the expanded plain-language explainer only; no raw variant tables
+ *    or provenance. High-impact findings point to a provider / genetic counselor.
  */
-export function ConditionPage({ bundle, condition, onSelectVariant }: Props) {
+export function ConditionPage({ bundle, role, condition, onSelectVariant }: Props) {
   const man = bundle.conditions.find((c) => c.condition === condition);
+  const [showVus, setShowVus] = useState(false);
+
+  const pgs = useMemo(
+    () => pgsCoverage(bundle.scores).filter((p) => matchesCondition(p.condition, condition)),
+    [bundle.scores, condition],
+  );
+
   if (!man) return <p className="subtitle">Condition not found.</p>;
 
   const examined = man.examined_variant_keys
     .map((k) => bundle.variants.find((v) => v.variant_key === k))
     .filter((v): v is VariantObservation => Boolean(v));
 
-  const examinedButMissingFromData = man.examined_variant_keys.filter(
-    (k) => !bundle.variants.some((v) => v.variant_key === k),
-  );
+  // Whether this condition has any observed, high-impact finding (for patients).
+  const hasObservedFinding = bundle.evidence.some((e) => {
+    if (e.condition !== condition) return false;
+    const v = bundle.variants.find((x) => x.variant_key === e.variant_key);
+    return v?.measurement_status === "observed";
+  });
 
+  // ---------------- Patient view ----------------
+  if (role === "patient") {
+    return (
+      <section aria-label={`Condition: ${condition} (patient view)`} className="condition-page patient">
+        <h3>{man.condition}</h3>
+        <p className="subtitle">{man.gene} · {man.inheritance}</p>
+        <p>{man.rationale}</p>
+        <div className="disclaimer" role="note">
+          {hasObservedFinding ? (
+            <>
+              This DNA test looked at a small number of specific spots related to
+              this condition. Some results here are worth discussing with your
+              healthcare provider or a genetic counselor, who can arrange proper
+              confirmatory testing. This is not a diagnosis.
+            </>
+          ) : (
+            <>
+              This DNA test checks only a few specific spots for this condition,
+              and it did not find them — but that does not rule the condition out,
+              because most of it is not measured here. If you have questions or a
+              family history, talk with your provider or a genetic counselor.
+            </>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  // ---------------- Clinician view (default) ----------------
   return (
     <section aria-label={`Condition: ${condition}`} className="condition-page">
       <h3>{man.condition}</h3>
@@ -32,63 +80,85 @@ export function ConditionPage({ bundle, condition, onSelectVariant }: Props) {
         {man.gene} · {man.inheritance}
       </p>
 
-      <p>{man.rationale}</p>
+      <h4>Carrier status (observed)</h4>
+      <CarrierStatusTable bundle={bundle} condition={condition} />
 
-      <h4>Elevated-frequency reference groups (population context)</h4>
+      <h4>Coverage</h4>
+      <CoveragePanel bundle={bundle} />
+
+      <h4>Polygenic score coverage</h4>
+      {pgs.length === 0 ? (
+        <p className="subtitle">No polygenic score applies to this condition.</p>
+      ) : (
+        pgs.map((p) => (
+          <div key={p.model_id} className="evidence-card">
+            <div className="evidence-head">
+              <strong>{p.condition}</strong>{" "}
+              {p.scorable ? (
+                <span className="badge warn">{p.coverage_pct}% markers observed</span>
+              ) : (
+                <span className="badge bad">unscorable</span>
+              )}
+            </div>
+            <p>{p.verdict}</p>
+            <p className="subtitle">{p.limitations}</p>
+          </div>
+        ))
+      )}
+
+      <h4>Founder-variant frequency context</h4>
       <ul className="tight">
         {man.elevated_frequency_groups.map((g) => (
           <li key={g}>
-            <span
-              className="seg-dot"
-              style={{ background: regionFor(g).color }}
-            />
-            {regionFor(g).name}
+            <span className="seg-dot" style={{ background: regionFor(g).color }} />
+            Frequency elevated in {regionFor(g).name}
           </li>
         ))}
       </ul>
       <p className="subtitle">
-        Elevated population frequency is not a per-person risk. It is a reason a
-        clinician might consider targeted testing, independent of this tool.
+        A higher allele frequency in a population is a statement about how common
+        a founder variant is there — not evidence that ancestry changes the
+        variant's effect, and not evidence any individual carries it.
       </p>
 
-      <h4>Curated variants examined ({examined.length})</h4>
-      {examined.length === 0 && examinedButMissingFromData.length === 0 && (
-        <p className="subtitle">
-          No specific SNP-array variant is curated for this condition. The
-          clinical standard for this condition is not represented by consumer
-          SNP genotypes.
-        </p>
-      )}
-      <ul className="tight">
-        {examined.map((v) => (
-          <li key={v.variant_key}>
-            <button className="linklike" onClick={() => onSelectVariant(v)}>
-              {v.rsid ?? v.variant_key}
-            </button>{" "}
-            <span className="subtitle">· {v.measurement_status}</span>
-          </li>
-        ))}
-        {examinedButMissingFromData.map((k) => (
-          <li key={k}>
-            <span className="subtitle">
-              {k} — curated for this condition but not present in this dataset
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      <h4>Relevant variants NOT measured</h4>
-      <div className="disclaimer" role="note">
-        <ul className="tight">
-          {man.not_measured.map((n, i) => (
-            <li key={i}>{n}</li>
-          ))}
-        </ul>
-        Absence of these from the dataset does not rule out a pathogenic variant.
+      <div className="vus-toggle">
+        <label>
+          <input
+            type="checkbox"
+            checked={showVus}
+            onChange={(e) => setShowVus(e.target.checked)}
+          />{" "}
+          Show VUS / low-evidence variants
+        </label>
       </div>
 
-      <h4>Screening note (clinician + patient)</h4>
-      <p>{man.screening_note}</p>
+      <h4>Curated variants examined ({examined.length})</h4>
+      <ul className="tight">
+        {examined
+          .filter(
+            (v) =>
+              showVus ||
+              !bundle.evidence.some(
+                (e) =>
+                  e.variant_key === v.variant_key &&
+                  (e.classification ?? "").toLowerCase().includes("uncertain"),
+              ),
+          )
+          .map((v) => (
+            <li key={v.variant_key}>
+              <button className="linklike" onClick={() => onSelectVariant(v)}>
+                {v.rsid ?? v.variant_key}
+              </button>{" "}
+              <span className="subtitle">· {v.measurement_status}</span>
+            </li>
+          ))}
+      </ul>
+
+      <details className="explainer">
+        <summary>Condition explainer</summary>
+        <p>{man.rationale}</p>
+        <p>{man.screening_note}</p>
+      </details>
 
       <div className="sources">
         Sources:{" "}
@@ -103,6 +173,14 @@ export function ConditionPage({ bundle, condition, onSelectVariant }: Props) {
       </div>
     </section>
   );
+}
+
+/** Loose match between a score's condition string and a curated condition. */
+function matchesCondition(scoreCondition: string, condition: string): boolean {
+  const a = scoreCondition.toLowerCase();
+  const b = condition.toLowerCase();
+  const key = b.split(/[\s/]/)[0] ?? "";
+  return a.includes(key) || b.includes((a.split(/[\s(]/)[0] ?? ""));
 }
 
 function hostOf(url: string): string {

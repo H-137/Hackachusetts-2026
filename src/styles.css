@@ -1104,3 +1104,197 @@ body.has-globe-bg .app > .subtitle {
 body.has-globe-bg .assistant {
   pointer-events: auto;
 }
+
+/* ---------- Role toggle + clinician view ---------- */
+
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.role-toggle {
+  display: inline-flex;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px;
+  flex: none;
+}
+
+.role-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-weight: 700;
+}
+
+.role-btn.active {
+  background: linear-gradient(180deg, var(--accent), #2f7fc0);
+  color: #06121d;
+}
+
+/* Considerations (triage) panel */
+.considerations {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.cons-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cons-head h3 {
+  margin: 0;
+}
+
+.cons-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cons-item {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.6rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.cons-body {
+  min-width: 0;
+}
+
+.cons-finding {
+  font-weight: 600;
+}
+
+.cons-action {
+  color: var(--text);
+  margin: 0.15rem 0;
+}
+
+.cons-foot {
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+}
+
+/* Overview row: coverage badge + confidence */
+.overview-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: stretch;
+  margin: 0.5rem 0 1rem;
+}
+
+.coverage-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.coverage-badge:hover {
+  border-color: var(--accent);
+}
+
+.coverage-badge-num {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.coverage-badge-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.confidence-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+}
+
+/* Coverage panel */
+.coverage-panel {
+  margin: 0.25rem 0 0.5rem;
+}
+
+/* Carrier status table */
+.carrier-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.carrier-row {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+}
+
+.carrier-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.carrier-interp {
+  font-size: 0.92rem;
+}
+
+.carrier-meta {
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.vus-toggle {
+  margin: 0.75rem 0;
+  font-size: 0.88rem;
+}
+
+.explainer {
+  margin: 1rem 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+}
+
+.explainer summary {
+  cursor: pointer;
+  font-weight: 600;
+}

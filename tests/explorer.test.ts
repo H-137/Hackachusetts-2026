@@ -23,6 +23,12 @@ import {
   buildAssistantContext,
   offlineAssistant,
 } from "../src/domain/assistant";
+import {
+  carrierStatuses,
+  considerations,
+  coverageSummary,
+  pgsCoverage,
+} from "../src/domain/clinical";
 
 const bundle = loadAnalysisBundle();
 
@@ -266,5 +272,54 @@ describe("results/methods assistant", () => {
       ctx,
     );
     expect(reply.text.toLowerCase()).toContain("unscorable");
+  });
+});
+
+describe("clinician derivations (triage, no fabrication)", () => {
+  it("counts clinical-allele copies only where the locus was assayed", () => {
+    const rows = carrierStatuses(bundle);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) {
+      if (!r.assayed) {
+        // Not assayed -> no fabricated copy count, framed as not-a-negative.
+        expect(r.clinical_allele_copies).toBeNull();
+        expect(r.zygosity).toBe("indeterminate");
+        expect(r.interpretation.toLowerCase()).toMatch(/not a negative|not assayed|confirm/);
+      } else {
+        expect([0, 1, 2]).toContain(r.clinical_allele_copies);
+      }
+    }
+  });
+
+  it("quantifies coverage as assayable-of-total and never claims full coverage implicitly", () => {
+    const cov = coverageSummary(bundle);
+    expect(cov.total).toBeGreaterThan(0);
+    expect(cov.assayable).toBeLessThanOrEqual(cov.total);
+    for (const row of cov.rows) {
+      expect(row.assayable).toBeLessThanOrEqual(row.total);
+    }
+  });
+
+  it("PGS coverage never produces a percentile or absolute risk", () => {
+    const pgs = pgsCoverage(bundle.scores);
+    expect(pgs.length).toBe(bundle.scores.length);
+    for (const p of pgs) {
+      // The verdict is about coverage, not a calibrated score/percentile.
+      expect(p.verdict.toLowerCase()).toMatch(/partial|unscorable|not a calibrated|no percentile/);
+    }
+  });
+
+  it("sorts considerations by actionability (observed findings first)", () => {
+    const items = considerations(bundle);
+    for (let i = 1; i < items.length; i++) {
+      expect(items[i - 1]!.actionability).toBeGreaterThanOrEqual(
+        items[i]!.actionability,
+      );
+    }
+    // Every action uses consider/confirm framing, never diagnostic/treatment.
+    for (const it of items) {
+      expect(it.action.toLowerCase()).toMatch(/consider|confirm|not a personal finding|not established/);
+      expect(it.action.toLowerCase()).not.toMatch(/\byou have\b|diagnos|prescrib|treatment plan/);
+    }
   });
 });

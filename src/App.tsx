@@ -11,6 +11,8 @@ import { Explorer } from "./components/Explorer";
 // ThreeJS/WebGL globe is heavy; load it only once a sample is being explored.
 const Globe = lazy(() => import("./components/Globe"));
 
+export type Role = "clinician" | "patient";
+
 type View =
   | { kind: "landing" }
   | { kind: "upload" }
@@ -45,6 +47,8 @@ export function App() {
   const [highlighted, setHighlighted] = useState<string[]>([]);
   // The explorer's active tab, lifted so the globe only renders on Chromosomes.
   const [explorerTab, setExplorerTab] = useState<string>("overview");
+  // Clinician-first by default; a simplified patient view is the secondary layer.
+  const [role, setRole] = useState<Role>("clinician");
 
   const handleParsed = useCallback((text: string) => {
     const parse = parseAncestryDna(text);
@@ -83,11 +87,39 @@ export function App() {
         </Suspense>
       )}
       <main className="app">
-      <h1>Ancestry-Aware Variant Explorer</h1>
-      <p className="subtitle">
-        Research prototype — chromosome-level ancestry, variant evidence, and
-        coverage, with visible uncertainty
-      </p>
+      <div className="app-header">
+        <div>
+          <h1>Ancestry-Aware Variant Explorer</h1>
+          <p className="subtitle">
+            Research prototype — triage context for confirmatory testing,
+            referral, or screening. Not diagnostic.
+          </p>
+        </div>
+        {view.kind === "explorer" && (
+          <div
+            className="role-toggle"
+            role="radiogroup"
+            aria-label="View mode"
+          >
+            <button
+              role="radio"
+              aria-checked={role === "clinician"}
+              className={role === "clinician" ? "role-btn active" : "role-btn"}
+              onClick={() => setRole("clinician")}
+            >
+              Clinician
+            </button>
+            <button
+              role="radio"
+              aria-checked={role === "patient"}
+              className={role === "patient" ? "role-btn active" : "role-btn"}
+              onClick={() => setRole("patient")}
+            >
+              Patient
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="disclaimer" role="note">
         This is a research prototype using synthetic data by default. It is not a
@@ -140,6 +172,7 @@ export function App() {
         {view.kind === "explorer" && (
           <Explorer
             bundle={view.bundle}
+            role={role}
             onReset={reset}
             onHighlightChange={setHighlighted}
             onTabChange={setExplorerTab}

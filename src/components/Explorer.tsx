@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { Role } from "../App";
 import type { AnalysisBundle, SelectedRegion } from "../domain/explorer";
 import {
   AUTOSOME_ORDER,
@@ -18,6 +19,7 @@ import { VariantDetail } from "./VariantDetail";
 
 interface Props {
   bundle: AnalysisBundle;
+  role: Role;
   onReset: () => void;
   /** Report the reference regions to highlight on the background globe. */
   onHighlightChange: (highlighted: string[]) => void;
@@ -35,6 +37,7 @@ type Tab = "overview" | "chromosomes" | "conditions";
  */
 export function Explorer({
   bundle,
+  role,
   onReset,
   onHighlightChange,
   onTabChange,
@@ -123,7 +126,13 @@ export function Explorer({
         </button>
       </nav>
 
-      {tab === "overview" && <AncestryOverview bundle={bundle} />}
+      {tab === "overview" && (
+        <AncestryOverview
+          bundle={bundle}
+          role={role}
+          onOpenCondition={openCondition}
+        />
+      )}
 
       {tab === "chromosomes" && (
         <section aria-label="Chromosome explorer" className="chrom-tab">
@@ -244,6 +253,7 @@ export function Explorer({
           </div>
           <ConditionPage
             bundle={bundle}
+            role={role}
             condition={condition ?? bundle.conditions[0]?.condition ?? ""}
             onSelectVariant={onSelectVariant}
           />
