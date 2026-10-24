@@ -18,7 +18,7 @@
       "approx_size": "~892 MB compressed (892331003 bytes observed)",
       "accept_ranges": true,
       "license": "1000 Genomes Project data use: open/unrestricted public data. Verify current terms at https://www.internationalgenome.org/data",
-      "sha256": null,
+      "sha256": "8b6c538abf0dd92d3f3020f36cc1dd67ce004ffa421c2781205f1eb690bdb442",
       "local_path": "pipeline/reference/assets/human_g1k_v37.fasta",
       "index_path": "pipeline/reference/assets/human_g1k_v37.fasta.fai"
     },

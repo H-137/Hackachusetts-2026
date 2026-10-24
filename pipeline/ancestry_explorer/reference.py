@@ -113,12 +113,32 @@ def _verify_or_record(manifest_entry: dict, key: str, path: Path) -> str:
 
 
 def _bgzip_fasta_to_plain(gz_path: Path, out_fa: Path) -> None:
-    """Decompress a .fa.gz to plain FASTA and index it with samtools faidx."""
+    """Decompress a .fa.gz to plain FASTA and index it with samtools faidx.
+
+    The 1000 Genomes human_g1k_v37.fasta.gz is stored in the legacy RAZF format,
+    which htslib's bgzip refuses ("Cannot decompress legacy RAZF format"). Plain
+    gunzip reads it fine (it emits a harmless "trailing garbage ignored" warning
+    for the RAZF footer). We try bgzip first for true bgzip/gzip inputs, then
+    fall back to gunzip for RAZF.
+    """
     out_fa.parent.mkdir(parents=True, exist_ok=True)
-    # bgzip -d works for both gzip and bgzip inputs via htslib.
+
     with open(out_fa, "wb") as out:
-        res = subprocess.run(["bgzip", "-dc", str(gz_path)], stdout=out, check=True)
-        _ = res
+        res = subprocess.run(["bgzip", "-dc", str(gz_path)], stdout=out,
+                             stderr=subprocess.PIPE, check=False)
+    if res.returncode != 0:
+        # Legacy RAZF (or other bgzip-incompatible gzip): use gunzip. gunzip
+        # exits non-zero (2) only for the trailing-garbage warning, so we accept
+        # a non-empty output as success and verify via faidx below.
+        with open(out_fa, "wb") as out:
+            subprocess.run(["gunzip", "-c", str(gz_path)], stdout=out,
+                           stderr=subprocess.DEVNULL, check=False)
+        if out_fa.stat().st_size == 0:
+            raise RuntimeError(
+                f"Failed to decompress {gz_path.name} with both bgzip and gunzip. "
+                f"bgzip stderr: {res.stderr.decode(errors='replace')[:200]}"
+            )
+
     subprocess.run(["samtools", "faidx", str(out_fa)], check=True)
 
 

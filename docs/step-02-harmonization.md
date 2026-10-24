@@ -109,6 +109,23 @@ parsing the full 18 MB input (a fixed cost paid once). Reference fetching is no
 longer the bottleneck, so full-genome harmonization is practical once the full
 reference FASTA is downloaded.
 
+### Full-genome run (real data)
+
+With the full `human_g1k_v37` reference downloaded, the real `AncestryDNA.txt`
+harmonized **genome-wide in 6.65 s**: all 640,594 autosomal SNPs written
+(525,102 ref-match, 115,492 hom-alt resolved, 4,118 strand-flagged, 0 dropped),
+spanning all 22 autosomes. `bcftools norm --check-ref e` against the full
+reference reports `640594/0/0/0/0/0/0` — zero REF mismatches at full scale.
+
+### RAZF decompression note
+
+The 1000 Genomes `human_g1k_v37.fasta.gz` is stored in the legacy **RAZF**
+format, which htslib's `bgzip` refuses. The setup command tries `bgzip` first
+and falls back to `gunzip` (which reads RAZF, emitting a harmless
+"trailing garbage ignored" warning for the RAZF footer). The decompressed FASTA
+is 3,153,506,519 bytes, exactly as the RAZF footer predicts, and indexes
+cleanly with `samtools faidx`.
+
 ## Privacy
 
 - Setup transmits no sample data; it only fetches public assets.
