@@ -557,10 +557,22 @@ body.has-globe-bg .app > .subtitle {
   padding: 0.25rem 0 0.5rem;
 }
 
-/* Clinician layout: the horizontal track reads better with a wider left viewer
-   and the lollipop panel beside it. */
+/* Clinician layout: stack the chromosome viewer and the lollipop/region panel
+   vertically (full width each) so the horizontal track is never cut off. The
+   viewer sizes to its content; the region panel fills the rest and scrolls
+   internally so the page stays a one-pager. */
 .chrom-stage.clinician {
-  grid-template-columns: minmax(420px, 52%) 1fr;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chrom-stage.clinician .viewer-panel {
+  flex: none;
+}
+
+.chrom-stage.clinician .region-clinical {
+  flex: 1;
 }
 
 /* Clinician layout has no globe: the right column is an opaque panel that
