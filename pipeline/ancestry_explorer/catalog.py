@@ -217,6 +217,156 @@ CATALOG: list[CatalogVariant] = [
         ],
         notes="AJ founder frameshift (indel). On chr15 (unprocessed here).",
     ),
+
+    # -----------------------------------------------------------------------
+    # chr22 data-mined additions (catalog_mine.py: ClinVar E-utilities P/LP in
+    # our real ancestry window, joined to gnomAD r2.1.1 per-population allele
+    # frequencies). These are the first chr22 entries selected by DOCUMENTED
+    # population enrichment rather than hand-picked names. All fall inside the
+    # real chr22 ancestry window, so their locus ancestry resolves on both
+    # copies. Their enriched populations are European (FIN/NFE/ASJ), so against
+    # this sample's EUR chr22 labels they resolve to within_superpopulation (or
+    # supported where the specific 1000G EUR label matches), never fabricated.
+    # Frequencies are real gnomAD r2.1.1 values from docs/artifacts/
+    # chr22-candidates-ranked.json. Verify current ClinVar/gnomAD before real use.
+    # -----------------------------------------------------------------------
+    CatalogVariant(
+        variant_id="CHEK2_c1100delC",
+        condition="CHEK2-related cancer predisposition",
+        gene="CHEK2",
+        inheritance="autosomal dominant (moderate-penetrance)",
+        source_build="GRCh37", chromosome="22", position_1based=29091857,
+        ref="AG", alt="A",  # 22-29091856-AG-A in gnomAD
+        hgvs="NM_007194.4(CHEK2):c.1100del (p.Thr367fs)",
+        rsid="rs555607708", variant_class="indel",
+        clinical_classification="Pathogenic",
+        review_status="criteria provided, multiple submitters, no conflicts",
+        classification_date="2026", clinvar_id="VCV000128042",
+        citations=["https://www.ncbi.nlm.nih.gov/clinvar/variation/128042/"],
+        associated_populations=["FIN"],  # FIN 0.86%, ASJ 0.69% (gnomAD r2.1.1)
+        founder_variant=True,
+        frequency_evidence=[
+            FrequencyEvidence(
+                population="FIN", allele_frequency=0.00863, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 FIN AF 0.86%",
+                enrichment_note="European founder (Finnish/Ashkenazi enriched); ~5.3x vs other pops. Breast/colorectal/prostate predisposition.",
+                source_url="https://gnomad.broadinstitute.org/variant/22-29091856-AG-A?dataset=gnomad_r2_1",
+            ),
+            FrequencyEvidence(
+                population="ASJ", allele_frequency=0.0069, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 ASJ AF 0.69%",
+                enrichment_note="Also enriched in Ashkenazi Jewish ancestry.",
+                source_url="https://gnomad.broadinstitute.org/variant/22-29091856-AG-A?dataset=gnomad_r2_1",
+            ),
+        ],
+        notes="Strongest chr22 population-enriched P/LP in the window. In-window (29.09 Mb).",
+    ),
+    CatalogVariant(
+        variant_id="UPB1_c917minus1GA",
+        condition="Beta-ureidopropionase deficiency",
+        gene="UPB1",
+        inheritance="autosomal recessive",
+        source_build="GRCh37", chromosome="22", position_1based=24919586,
+        ref="G", alt="A",
+        hgvs="NM_016327.3(UPB1):c.917-1G>A",
+        rsid="rs143493067", variant_class="snp",
+        clinical_classification="Pathogenic/Likely pathogenic",
+        review_status="criteria provided, multiple submitters, no conflicts",
+        classification_date="2026", clinvar_id="VCV000445946",
+        citations=["https://www.ncbi.nlm.nih.gov/clinvar/variation/445946/"],
+        associated_populations=["ASJ"],  # ASJ 0.34% top (gnomAD r2.1.1)
+        founder_variant=True,
+        frequency_evidence=[
+            FrequencyEvidence(
+                population="ASJ", allele_frequency=0.00345, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 ASJ AF 0.34%",
+                enrichment_note="~3.3x enrichment, Ashkenazi Jewish. Recessive metabolic disorder.",
+                source_url="https://gnomad.broadinstitute.org/variant/22-24919586-G-A?dataset=gnomad_r2_1",
+            ),
+        ],
+        notes="In-window (24.92 Mb). ASJ enrichment (no 1000G AJ reference label -> unresolved against our EUR panel).",
+    ),
+    CatalogVariant(
+        variant_id="ARSA_c542T_G",
+        condition="Metachromatic leukodystrophy",
+        gene="ARSA",
+        inheritance="autosomal recessive",
+        source_build="GRCh37", chromosome="22", position_1based=51065404,
+        ref="A", alt="C",
+        hgvs="NM_000487.6(ARSA):c.542T>G (p.Ile181Ser)",
+        rsid="rs74315457", variant_class="snp",
+        clinical_classification="Pathogenic/Likely pathogenic",
+        review_status="criteria provided, multiple submitters, no conflicts",
+        classification_date="2026", clinvar_id="VCV000003057",
+        citations=["https://www.ncbi.nlm.nih.gov/clinvar/variation/3057/"],
+        associated_populations=["CEU", "GBR", "IBS", "TSI", "FIN"],  # NFE-enriched -> EUR 1000G pops
+        founder_variant=False,
+        frequency_evidence=[
+            FrequencyEvidence(
+                population="NFE", allele_frequency=0.00123, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 NFE AF 0.12%",
+                enrichment_note="Non-Finnish-European-enriched MLD allele (same gene as the c.907G>A entry).",
+                source_url="https://gnomad.broadinstitute.org/variant/22-51065404-A-C?dataset=gnomad_r2_1",
+            ),
+        ],
+        notes="In-window (51.07 Mb). NFE enrichment maps to the EUR 1000G reference pops.",
+    ),
+    CatalogVariant(
+        variant_id="SCO2_c16_17ins",
+        condition="Fatal infantile cardioencephalomyopathy (COX deficiency)",
+        gene="SCO2",
+        inheritance="autosomal recessive",
+        source_build="GRCh37", chromosome="22", position_1based=50962824,
+        ref="C", alt="CTGAGTCACTGCTGCATGCT",
+        hgvs="NM_005138.3(SCO2):c.16_17insAGCATGCAGCAGTGACTCA (p.Arg6fs)",
+        rsid="rs749838192", variant_class="indel",
+        clinical_classification="Pathogenic/Likely pathogenic",
+        review_status="criteria provided, multiple submitters, no conflicts",
+        classification_date="2025", clinvar_id="VCV000222816",
+        citations=["https://www.ncbi.nlm.nih.gov/clinvar/variation/222816/"],
+        associated_populations=["FIN"],  # FIN 1.01% top (gnomAD r2.1.1)
+        founder_variant=True,
+        frequency_evidence=[
+            FrequencyEvidence(
+                population="FIN", allele_frequency=0.01008, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 FIN AF 1.01%",
+                enrichment_note="Finnish-enriched recessive variant.",
+                source_url="https://gnomad.broadinstitute.org/variant/22-50962824-C-CTGAGTCACTGCTGCATGCT?dataset=gnomad_r2_1",
+            ),
+        ],
+        notes="In-window (50.96 Mb). Finnish enrichment; FIN is a 1000G reference pop.",
+    ),
+    CatalogVariant(
+        variant_id="ADA2_c973minus2AG",
+        condition="Deficiency of adenosine deaminase 2 (DADA2)",
+        gene="ADA2",
+        inheritance="autosomal recessive",
+        source_build="GRCh37", chromosome="22", position_1based=17669339,
+        ref="T", alt="C",
+        hgvs="NM_001282225.2(ADA2):c.973-2A>G",
+        rsid="rs139750129", variant_class="snp",
+        clinical_classification="Pathogenic",
+        review_status="criteria provided, multiple submitters, no conflicts",
+        classification_date="2026", clinvar_id="VCV000541735",
+        citations=["https://www.ncbi.nlm.nih.gov/clinvar/variation/541735/"],
+        associated_populations=["FIN"],  # FIN 0.12% top (gnomAD r2.1.1)
+        founder_variant=False,
+        frequency_evidence=[
+            FrequencyEvidence(
+                population="FIN", allele_frequency=0.00115, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 FIN AF 0.12%",
+                enrichment_note="Finnish-enriched recessive vasculopathy variant.",
+                source_url="https://gnomad.broadinstitute.org/variant/22-17669339-T-C?dataset=gnomad_r2_1",
+            ),
+        ],
+        notes="In-window (17.67 Mb). Finnish enrichment; FIN is a 1000G reference pop.",
+    ),
 ]
 
 

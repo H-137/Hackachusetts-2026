@@ -76,6 +76,7 @@ class AncestryRunSummary:
     subpop_order: list[str]
     method: str = "RFMix v2.03"
     reference_panel: str = ""
+    reference_panel_provenance: dict = field(default_factory=dict)
     msp_path: str = ""
     warnings: list[str] = field(default_factory=list)
 
@@ -92,6 +93,7 @@ class AncestryRunSummary:
             "subpop_order": self.subpop_order,
             "method": self.method,
             "reference_panel": self.reference_panel,
+            "reference_panel_provenance": self.reference_panel_provenance,
             "msp_path": self.msp_path,
             "warnings": self.warnings,
         }
@@ -220,12 +222,17 @@ def parse_msp_to_segments(
     subpop_order: list[str],
     reference_panel: str,
     method: str = "RFMix v2.03",
+    panel_provenance: dict | None = None,
 ) -> tuple[list[dict], AncestryRunSummary]:
     """Parse .msp.tsv into AncestrySegment dicts for a single query sample.
 
     Each data row covers a window [spos, epos] (1-based inclusive) with one
     ancestry index per haplotype column. For a single query sample there are two
     haplotype columns (copy 1 and copy 2). Converts to 0-based half-open.
+
+    panel_provenance: optional machine-readable panel descriptor (panels.py
+    Panel.provenance()) stamped onto every segment so results carry the
+    reference-panel version/population-set/sources, not just a VCF filename.
     """
     subpop_order, hap_cols = _parse_msp_header(msp_path)
     n_hap = len(hap_cols)
@@ -288,11 +295,16 @@ def parse_msp_to_segments(
                     "assignment_status": status,
                     "method": method,
                     "reference_panel": reference_panel,
+                    "reference_panel_version": (
+                        (panel_provenance or {}).get("panel_version", "")),
+                    "reference_panel_id": (
+                        (panel_provenance or {}).get("panel_id", "")),
                     "parental_origin": None,
                     "provenance": {
                         "source_type": "ancestrydna_upload",
                         "accessed_at": "",
                         "notes": "RFMix local ancestry; copy 1/2 are phase order, not parental.",
+                        "reference_panel": panel_provenance or {},
                     },
                 })
 
@@ -308,6 +320,7 @@ def parse_msp_to_segments(
         subpop_order=subpop_order,
         method=method,
         reference_panel=reference_panel,
+        reference_panel_provenance=panel_provenance or {},
         msp_path=str(msp_path),
     )
     return segments, summary

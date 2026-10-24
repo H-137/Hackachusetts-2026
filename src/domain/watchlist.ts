@@ -69,6 +69,7 @@ export type CompatibilityStatus =
   | "within_superpopulation"
   | "mismatch"
   | "no_association_documented"
+  | "ancestry_unresolved"
   | "not_available";
 
 export type PriorityCategory =
@@ -76,7 +77,19 @@ export type PriorityCategory =
   | "ancestry_supported"
   | "review_status_strong"
   | "context_weak"
+  | "ancestry_unresolved"
   | "ancestry_not_available";
+
+/**
+ * Relevance to THIS user's data:
+ *  - "observed_finding": a clinically relevant allele was directly observed.
+ *  - "ancestry_relevant": real local ancestry at the locus matches the
+ *    variant's specifically associated population (a data-driven reason).
+ *  - "not_relevant": neither applies for this data (e.g. an AJ founder variant
+ *    on an unprocessed chromosome with no matching ancestry and no observed
+ *    genotype). Kept for the coverage view, excluded from primary insights.
+ */
+export type Relevance = "observed_finding" | "ancestry_relevant" | "not_relevant";
 
 export interface WatchlistEntry {
   variant: CatalogVariant;
@@ -89,6 +102,8 @@ export interface WatchlistEntry {
   priority_category: PriorityCategory;
   priority_reasons: string[];
   attention_rationale: string;
+  /** Whether this entry is interesting for the handed-in data (see Relevance). */
+  relevance: Relevance;
   limitations: string[];
 }
 
@@ -97,7 +112,8 @@ const PRIORITY_ORDER: Record<PriorityCategory, number> = {
   ancestry_supported: 1,
   review_status_strong: 2,
   context_weak: 3,
-  ancestry_not_available: 4,
+  ancestry_unresolved: 4,
+  ancestry_not_available: 5,
 };
 
 const COMMON_LIMITATIONS = [
@@ -164,6 +180,7 @@ function compatibility(
   assoc: string[],
   c1: CopyAncestry,
   c2: CopyAncestry,
+  panelPopulations?: Set<string>,
 ): { status: CompatibilityStatus; detail: string } {
   if (assoc.length === 0) {
     return {
@@ -181,6 +198,28 @@ function compatibility(
       detail:
         "Local ancestry is not available at this locus, so population compatibility is unresolved.",
     };
+  }
+  // If the active panel has no reference group for the associated population(s)
+  // (nor any group in the same super-population), it CANNOT resolve the
+  // association. Report "ancestry_unresolved", not "mismatch": a missing
+  // reference group is not evidence of conflict. This is the Ashkenazi case
+  // until an AJ reference group is in the panel.
+  if (panelPopulations && panelPopulations.size > 0) {
+    const assocSuperSet = new Set(assoc.map(superPopulationFor));
+    const panelSuperSet = new Set([...panelPopulations].map(superPopulationFor));
+    const panelCanRepresent =
+      assoc.some((p) => panelPopulations.has(p)) ||
+      [...assocSuperSet].some((s) => panelSuperSet.has(s) && s !== "UNKNOWN");
+    if (!panelCanRepresent) {
+      return {
+        status: "ancestry_unresolved",
+        detail:
+          "The active reference panel has no group for the associated population(s) " +
+          [...new Set(assoc)].sort().join(", ") +
+          ", so local ancestry CANNOT resolve this association. This is " +
+          "'unresolved', not a mismatch and not 'irrelevant'.",
+      };
+    }
   }
   const assocSet = new Set(assoc);
   if (labels.some((l) => assocSet.has(l))) {
@@ -273,6 +312,17 @@ function assignPriority(
         "Cannot use local ancestry here yet. Clinical evidence still stands; absence of ancestry context is not reassurance.",
     };
   }
+  if (compat.status === "ancestry_unresolved") {
+    return {
+      category: "ancestry_unresolved",
+      reasons: [
+        `${v.clinical_classification} (${v.review_status}).`,
+        "The reference panel has no group for the associated population, so ancestry cannot resolve this association.",
+      ],
+      rationale:
+        "The associated population is not resolvable by the active reference panel (e.g. no Ashkenazi reference group). The variant stays visible and its clinical evidence stands; ancestry context is UNRESOLVED, not irrelevant and not reassurance.",
+    };
+  }
   return {
     category: "context_weak",
     reasons: [`${v.clinical_classification} (${v.review_status}); weak or mismatched local-ancestry relevance.`],
@@ -281,17 +331,35 @@ function assignPriority(
   };
 }
 
+/**
+ * Derive the set of populations the active reference panel can assign, from the
+ * labels actually present in the run's segments. This is the data-driven
+ * substitute for a hardcoded population list: a panel that lacks an AJ group
+ * will have no AJ-labeled segments, so AJ associations become
+ * "ancestry_unresolved" rather than "mismatch".
+ */
+export function panelPopulationsFromSegments(segments: AncestrySegment[]): Set<string> {
+  const pops = new Set<string>();
+  for (const s of segments) {
+    if (s.ancestry_label && s.ancestry_label !== "UNKNOWN") {
+      pops.add(s.ancestry_label);
+    }
+  }
+  return pops;
+}
+
 export function buildWatchlist(
   catalog: CatalogVariant[],
   segments: AncestrySegment[],
   processedChromosomes: Set<string>,
   observedByRsid: Record<string, ObservedProvenance> = {},
+  panelPopulations?: Set<string>,
 ): WatchlistEntry[] {
   const entries: WatchlistEntry[] = catalog.map((v) => {
     const pos0 = v.position_1based - 1;
     const c1 = copyAncestry(segments, processedChromosomes, v.chromosome, pos0, 1);
     const c2 = copyAncestry(segments, processedChromosomes, v.chromosome, pos0, 2);
-    const compat = compatibility(v.associated_populations, c1, c2);
+    const compat = compatibility(v.associated_populations, c1, c2, panelPopulations);
 
     const prov = v.rsid ? observedByRsid[v.rsid] : undefined;
     let measurementStatus = "unassayed";
@@ -318,6 +386,18 @@ export function buildWatchlist(
       carries,
     );
 
+    // Relevance to THIS data: an observed clinically relevant allele, or a real
+    // locus-ancestry match to a specifically associated population. Everything
+    // else is not interesting for this user's data (shown only in coverage).
+    let relevance: Relevance;
+    if (measurementStatus === "observed" && carries) {
+      relevance = "observed_finding";
+    } else if (compat.status === "supported") {
+      relevance = "ancestry_relevant";
+    } else {
+      relevance = "not_relevant";
+    }
+
     const limitations = [...COMMON_LIMITATIONS];
     if (!phaseEstablished && measurementStatus === "observed") {
       limitations.push(
@@ -336,6 +416,7 @@ export function buildWatchlist(
       priority_category: category,
       priority_reasons: reasons,
       attention_rationale: rationale,
+      relevance,
       limitations,
     };
   });

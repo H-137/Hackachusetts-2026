@@ -38,15 +38,12 @@ from dataclasses import asdict, dataclass, field
 
 # Which fine reference populations roll up to which super-population, so we can
 # say a locus label is "within the associated super-population" WITHOUT claiming
-# it is the specific founder population.
-_SUPERPOP = {
-    "CEU": "EUR", "GBR": "EUR", "FIN": "EUR", "IBS": "EUR", "TSI": "EUR",
-    "CHB": "EAS", "JPT": "EAS", "CHS": "EAS", "CDX": "EAS", "KHV": "EAS",
-    "YRI": "AFR", "LWK": "AFR", "GWD": "AFR", "MSL": "AFR", "ESN": "AFR",
-    "ASW": "AFR", "ACB": "AFR",
-    "MXL": "AMR", "PUR": "AMR", "CLM": "AMR", "PEL": "AMR",
-    "GIH": "SAS", "PJL": "SAS", "BEB": "SAS", "STU": "SAS", "ITU": "SAS",
-}
+# it is the specific founder population. The authoritative rollup for a run comes
+# from the active panel (panels.py derives it from the sample map). This shared
+# table is a fallback for callers that do not pass a panel-derived map.
+from .panels import FALLBACK_SUPERPOP as _FALLBACK_SUPERPOP
+
+_SUPERPOP = dict(_FALLBACK_SUPERPOP)
 
 
 @dataclass
@@ -65,7 +62,8 @@ class CopyAncestry:
 class PopulationCompatibility:
     """How locus ancestry relates to the variant's documented association."""
     status: str   # "supported" | "within_superpopulation" | "mismatch"
-                  # | "no_association_documented" | "unresolved" | "not_available"
+                  # | "no_association_documented" | "ancestry_unresolved"
+                  # | "unresolved" | "not_available"
     detail: str
 
 
@@ -132,7 +130,10 @@ def _copy_ancestry(segments: list[dict], processed_chroms: set[str],
     )
 
 
-def _compatibility(assoc: list[str], c1: CopyAncestry, c2: CopyAncestry) -> PopulationCompatibility:
+def _compatibility(assoc: list[str], c1: CopyAncestry, c2: CopyAncestry,
+                   superpop: dict[str, str] | None = None,
+                   panel_populations: set[str] | None = None) -> PopulationCompatibility:
+    sp = superpop or _SUPERPOP
     if not assoc:
         return PopulationCompatibility(
             "no_association_documented",
@@ -146,6 +147,27 @@ def _compatibility(assoc: list[str], c1: CopyAncestry, c2: CopyAncestry) -> Popu
             "Local ancestry is not available at this locus (chromosome not "
             "processed or no segment), so population compatibility is unresolved.",
         )
+    # If the reference panel contains NONE of the specifically associated
+    # populations (and none sharing their super-population), the panel simply
+    # cannot resolve this association. Report "unresolved", NOT "mismatch":
+    # the absence of a reference group (e.g. no AJ samples) is not evidence the
+    # locus ancestry conflicts with the association. This is the Ashkenazi case
+    # until an AJ reference group is in the active panel.
+    if panel_populations is not None:
+        assoc_super = {sp.get(p) for p in assoc if sp.get(p)}
+        panel_super = {sp.get(p) for p in panel_populations if sp.get(p)}
+        panel_can_represent = (
+            bool(set(assoc) & panel_populations) or bool(assoc_super & panel_super))
+        if not panel_can_represent:
+            return PopulationCompatibility(
+                "ancestry_unresolved",
+                "The active reference panel contains no reference group for the "
+                "associated population(s) " + ", ".join(sorted(set(assoc)))
+                + " (nor any group in the same super-population), so local "
+                "ancestry CANNOT resolve this association. This is 'unresolved', "
+                "NOT a mismatch and NOT 'irrelevant': a missing reference group "
+                "is not evidence the locus conflicts with the association.",
+            )
     assoc_set = set(assoc)
     # Exact support: a copy's label is one of the specifically associated pops.
     if any(lbl in assoc_set for lbl in labels):
@@ -157,8 +179,8 @@ def _compatibility(assoc: list[str], c1: CopyAncestry, c2: CopyAncestry) -> Popu
         )
     # Same super-population but not the specific founder group: do NOT claim a
     # founder match.
-    assoc_super = {_SUPERPOP.get(p) for p in assoc}
-    label_super = {_SUPERPOP.get(l) for l in labels}
+    assoc_super = {sp.get(p) for p in assoc if sp.get(p)}
+    label_super = {sp.get(l) for l in labels if sp.get(l)}
     if assoc_super & label_super:
         return PopulationCompatibility(
             "within_superpopulation",
@@ -210,7 +232,8 @@ def assign_priority(variant: dict, compat: PopulationCompatibility,
 
     if expert:
         reasons.append(f"{cls}, reviewed by expert panel.")
-        if compat.status in ("within_superpopulation", "unresolved", "not_available"):
+        if compat.status in ("within_superpopulation", "ancestry_unresolved",
+                             "unresolved", "not_available"):
             reasons.append("Locus-ancestry support is weaker or unresolved.")
         return "review_status_strong", reasons, (
             "Strong clinical evidence; local-ancestry support is weaker or "
@@ -223,6 +246,17 @@ def assign_priority(variant: dict, compat: PopulationCompatibility,
         return "ancestry_not_available", reasons, (
             "Cannot use local ancestry here yet. Clinical evidence still stands; "
             "absence of ancestry context is not reassurance."
+        )
+
+    if compat.status == "ancestry_unresolved":
+        reasons.append(f"{cls} ({review}).")
+        reasons.append("The reference panel has no group for the associated "
+                       "population, so ancestry cannot resolve this association.")
+        return "ancestry_unresolved", reasons, (
+            "The associated population is not resolvable by the active reference "
+            "panel (e.g. no Ashkenazi reference group). The variant stays visible "
+            "and its clinical evidence stands; ancestry context is UNRESOLVED, "
+            "not irrelevant and not reassurance."
         )
 
     reasons.append(f"{cls} ({review}); weak or mismatched local-ancestry relevance.")
@@ -238,12 +272,19 @@ def build_watchlist(
     processed_chromosomes: set[str],
     raw_provenance_by_rsid: dict[str, dict] | None = None,
     clinical_allele_by_variant: dict[str, str] | None = None,
+    panel_superpop_map: dict[str, str] | None = None,
+    panel_populations: set[str] | None = None,
 ) -> list[dict]:
     """Build the ancestry-informed watchlist. Returns entries sorted by priority.
 
     ancestry_segments: normalized AncestrySegment dicts (locus-specific source).
     processed_chromosomes: chroms for which ancestry exists (e.g. {"22"}).
     raw_provenance_by_rsid: RawRowProvenance.as_dict() per rsid (observed status).
+    panel_superpop_map: pop->super-pop rollup for the ACTIVE reference panel
+      (from panels.py). When omitted, the shared fallback table is used.
+    panel_populations: the set of populations the active panel can actually
+      assign. When provided, an association the panel has no group for is marked
+      'ancestry_unresolved' instead of 'mismatch' (the Ashkenazi case).
     """
     prov = raw_provenance_by_rsid or {}
     entries: list[WatchlistEntry] = []
@@ -253,7 +294,9 @@ def build_watchlist(
         pos0 = v["position_1based"] - 1
         c1 = _copy_ancestry(ancestry_segments, processed_chromosomes, chrom, pos0, 1)
         c2 = _copy_ancestry(ancestry_segments, processed_chromosomes, chrom, pos0, 2)
-        compat = _compatibility(v.get("associated_populations", []), c1, c2)
+        compat = _compatibility(v.get("associated_populations", []), c1, c2,
+                                superpop=panel_superpop_map,
+                                panel_populations=panel_populations)
 
         # Observation (never inferred from ancestry).
         rp = prov.get(v.get("rsid") or "")
@@ -317,7 +360,7 @@ def build_watchlist(
 
     order = {
         "observed_finding": 0, "ancestry_supported": 1, "review_status_strong": 2,
-        "context_weak": 3, "ancestry_not_available": 4,
+        "context_weak": 3, "ancestry_unresolved": 4, "ancestry_not_available": 5,
     }
     entries.sort(key=lambda e: order.get(e.priority_category, 9))
     return [e.as_dict() for e in entries]

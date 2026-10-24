@@ -139,6 +139,11 @@ export interface AncestrySegment {
   assignment_status: "assigned" | "uncertain" | "unknown";
   method: string;
   reference_panel: string;
+  /** Versioned reference-panel id/version the segment was produced with. These
+   *  carry the provenance so the UI never relies on a hardcoded population list;
+   *  the authoritative label set comes from the run, not from geography.ts. */
+  reference_panel_id?: string;
+  reference_panel_version?: string;
   parental_origin?: string | null;
   provenance: Provenance;
 }

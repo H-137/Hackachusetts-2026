@@ -32,14 +32,29 @@ def _variant(**kw):
 # --- catalog integrity ---
 
 def test_catalog_excludes_vus_and_benign():
+    # Accept the valid ClinVar P/LP aggregate forms; exclude VUS/benign/conflicting.
+    allowed = {"Pathogenic", "Likely pathogenic", "Pathogenic/Likely pathogenic"}
+    forbidden_substrings = ("uncertain", "benign", "conflicting", "vus")
     for v in CATALOG:
-        assert v.clinical_classification in ("Pathogenic", "Likely pathogenic")
+        assert v.clinical_classification in allowed
+        low = v.clinical_classification.lower()
+        assert not any(s in low for s in forbidden_substrings)
 
 
 def test_catalog_includes_unassayed_variants():
     # The catalog is not restricted to array positions: BRCA/HEXA are included.
     genes = {v.gene for v in CATALOG}
     assert {"BRCA1", "BRCA2", "HEXA"} <= genes
+
+
+def test_chr22_expansion_present_and_in_window():
+    # Data-mined chr22 additions exist and fall in the real ancestry window.
+    chr22 = [v for v in CATALOG if v.chromosome == "22"]
+    ids = {v.variant_id for v in chr22}
+    assert {"CHEK2_c1100delC", "UPB1_c917minus1GA", "ARSA_c542T_G",
+            "SCO2_c16_17ins", "ADA2_c973minus2AG"} <= ids
+    for v in chr22:
+        assert 16_000_000 <= v.position_1based <= 51_300_000
 
 
 def test_provenance_reports_size_and_limits():

@@ -3,9 +3,15 @@
  * global regions with representative centroid coordinates for the interactive
  * globe (Step 6 UI).
  *
- * This workflow uses the 26 fine-grain 1000 Genomes reference populations
- * ("pop" level), not the 5 super-populations. Each entry carries a readable
- * reference-population name and the super-population it belongs to.
+ * This is a DISPLAY registry (names, centroids, colors) only. It is NOT the
+ * authoritative population list: the set of labels for a run comes from the
+ * reference-panel provenance carried in the results (reference_panel_id /
+ * reference_panel_version on each AncestrySegment). Panels can add populations
+ * (e.g. an Ashkenazi Jewish group) without touching the pipeline's label
+ * handling. Any label not found here renders via UNKNOWN_REGION rather than
+ * breaking; add presentation metadata here when a panel introduces a new code.
+ * The entries below cover the 1000 Genomes populations plus the Step 7 expanded
+ * panel's added groups.
  *
  * IMPORTANT framing (HACKATHON_PROJECT_PLAN.md Section 2 "Terminology"):
  * these are *reference-population* groups used for local genetic ancestry
@@ -238,8 +244,22 @@ export const GLOBAL_REGIONS: Record<string, GlobalRegion> = {
     lat: 48.0, lng: 10.0, color: "#5e81ac",
   },
   AJ: {
-    code: "AJ", name: "Ashkenazi Jewish", superPopulation: "EUR",
-    description: "Ashkenazi Jewish reference group; relevant to several documented founder variants.",
+    code: "AJ", name: "Ashkenazi Jewish", superPopulation: "MID",
+    description:
+      "Ashkenazi Jewish reference group (West-Eurasian; rolled up under Middle " +
+      "Eastern, NOT merged into European, so AJ stays distinguishable from " +
+      "1000G European sub-populations). Relevant to several documented founder " +
+      "variants. Requires an AJ reference group in the active panel to be " +
+      "assignable; see Step 7.",
+    lat: 52.2, lng: 19.1, color: "#d08770",
+  },
+  AJ_PROXY: {
+    code: "AJ_PROXY", name: "AJ proxy (pilot stand-in)", superPopulation: "MID",
+    description:
+      "Step 7 PILOT STAND-IN, not real Ashkenazi data: a held-out set of real " +
+      "1000G individuals relabeled to exercise the expanded-panel path end to " +
+      "end. Any assignment to this label is a mechanism demonstration, not a " +
+      "validated AJ result.",
     lat: 52.2, lng: 19.1, color: "#d08770",
   },
   MID: {

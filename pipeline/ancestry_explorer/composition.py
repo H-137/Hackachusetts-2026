@@ -50,21 +50,22 @@ class CompositionResult:
         }
 
 
-# super-population rollup for the 26 1000G reference populations.
-_SUPERPOP = {
-    "CEU": "EUR", "GBR": "EUR", "FIN": "EUR", "IBS": "EUR", "TSI": "EUR",
-    "CHB": "EAS", "JPT": "EAS", "CHS": "EAS", "CDX": "EAS", "KHV": "EAS",
-    "YRI": "AFR", "LWK": "AFR", "GWD": "AFR", "MSL": "AFR", "ESN": "AFR",
-    "ASW": "AFR", "ACB": "AFR",
-    "MXL": "AMR", "PUR": "AMR", "CLM": "AMR", "PEL": "AMR",
-    "GIH": "SAS", "PJL": "SAS", "BEB": "SAS", "STU": "SAS", "ITU": "SAS",
-}
+# Super-population rollup. The authoritative source is the active panel's
+# sample map (panels.py derives pop->super_pop from it, so new populations such
+# as AJ roll up correctly). This module-level dict is only a fallback for
+# callers that do not pass a panel-derived map; it must not be relied on to
+# enumerate "the" population set. A label not found here rolls up to "OTHER",
+# which is reported, never silently hidden.
+from .panels import FALLBACK_SUPERPOP as _FALLBACK_SUPERPOP
+
+_SUPERPOP = dict(_FALLBACK_SUPERPOP)
 
 
 def compose_by_span(
     segments: list[dict],
     chromosome: str,
     chrom_length_bp: int | None = None,
+    superpop_map: dict[str, str] | None = None,
 ) -> CompositionResult:
     """Compute per-chromosome composition from AncestrySegment dicts.
 
@@ -118,10 +119,13 @@ def compose_by_span(
             "fraction_of_covered": (bp / covered_bp) if covered_bp else 0.0,
         }
 
-    # Super-population rollup (of assigned span).
+    # Super-population rollup (of assigned span). Prefer the panel-derived map
+    # (so panel-specific populations like AJ roll up correctly); fall back to
+    # the shared table only when no map is supplied.
+    sp_lookup = superpop_map or _SUPERPOP
     sp_bp: dict[str, int] = {}
     for label, bp in label_bp.items():
-        sp = _SUPERPOP.get(label, "OTHER")
+        sp = sp_lookup.get(label, "OTHER")
         sp_bp[sp] = sp_bp.get(sp, 0) + bp
     by_superpop = {
         sp: {"bp": bp, "fraction_of_assigned": (bp / assigned_bp) if assigned_bp else 0.0}
@@ -139,6 +143,12 @@ def compose_by_span(
         "NOT a validated ancestry result. Labels are experimental inferred "
         "similarity to reference populations.",
     ]
+    other_labels = sorted(l for l in label_bp if sp_lookup.get(l, "OTHER") == "OTHER")
+    if other_labels:
+        notes.append(
+            "Labels without a known super-population rollup (shown under OTHER): "
+            + ", ".join(other_labels)
+            + ". Add them to the panel's super_pop column or superpop_overrides.")
 
     return CompositionResult(
         chromosome=chromosome,

@@ -7,6 +7,7 @@ import type { ParseResult, Sample } from "./domain/types";
 import { UploadScreen } from "./components/UploadScreen";
 import { QualityReport } from "./components/QualityReport";
 import { Explorer } from "./components/Explorer";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // ThreeJS/WebGL globe is heavy; load it only once a sample is being explored.
 const Globe = lazy(() => import("./components/Globe"));
@@ -62,6 +63,22 @@ export function App() {
 
   const handleExplorer = useCallback(() => {
     setView({ kind: "explorer", bundle: loadAnalysisBundle() });
+  }, []);
+
+  // Load a REAL run bundle produced by the pipeline (make_real_bundle.py). The
+  // file is read locally in the browser and never uploaded, stored, or
+  // committed. This renders the user's actual ancestry segments and genotypes.
+  const handleRealBundle = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const bundle = JSON.parse(String(reader.result)) as AnalysisBundle;
+        setView({ kind: "explorer", bundle });
+      } catch {
+        // Invalid JSON: stay on landing. A full UI would surface an error.
+      }
+    };
+    reader.readAsText(file);
   }, []);
 
   const reset = useCallback(() => {
@@ -145,6 +162,26 @@ export function App() {
             <button onClick={handleExplorer}>Open explorer</button>
           </div>
           <div className="card">
+            <h3>Open your real run</h3>
+            <p className="subtitle">
+              Load a bundle produced by the pipeline (real_bundle.json) to
+              visualize your actual local-ancestry segments and genotypes. Read
+              locally in your browser; never uploaded or stored.
+            </p>
+            <label className="file-button">
+              Open real_bundle.json
+              <input
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleRealBundle(f);
+                }}
+              />
+            </label>
+          </div>
+          <div className="card">
             <h3>Upload AncestryDNA text</h3>
             <p className="subtitle">
               Parsed locally in your browser. The file is not uploaded, stored,
@@ -176,13 +213,15 @@ export function App() {
       )}
 
         {view.kind === "explorer" && (
-          <Explorer
-            bundle={view.bundle}
-            role={role}
-            onReset={reset}
-            onHighlightChange={setHighlighted}
-            onTabChange={setExplorerTab}
-          />
+          <ErrorBoundary onReset={reset}>
+            <Explorer
+              bundle={view.bundle}
+              role={role}
+              onReset={reset}
+              onHighlightChange={setHighlighted}
+              onTabChange={setExplorerTab}
+            />
+          </ErrorBoundary>
         )}
       </main>
     </>

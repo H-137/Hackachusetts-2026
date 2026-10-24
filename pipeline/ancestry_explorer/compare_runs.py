@@ -86,11 +86,15 @@ class RunDescriptor:
 
 
 def compare(run_a: RunDescriptor, run_b: RunDescriptor,
-            chrom: str, chrom_len: int) -> dict:
+            chrom: str, chrom_len: int,
+            superpop_map_a: dict[str, str] | None = None,
+            superpop_map_b: dict[str, str] | None = None) -> dict:
     wa, ma = _msp_window_stats(run_a.msp_path)
     wb, mb = _msp_window_stats(run_b.msp_path)
-    comp_a = compose_by_span(run_a.segments, chrom, chrom_len).as_dict()
-    comp_b = compose_by_span(run_b.segments, chrom, chrom_len).as_dict()
+    comp_a = compose_by_span(run_a.segments, chrom, chrom_len,
+                             superpop_map=superpop_map_a).as_dict()
+    comp_b = compose_by_span(run_b.segments, chrom, chrom_len,
+                             superpop_map=superpop_map_b).as_dict()
     agree_bp, compared_bp = _bp_agreement(run_a.segments, run_b.segments)
 
     def _sp(comp):

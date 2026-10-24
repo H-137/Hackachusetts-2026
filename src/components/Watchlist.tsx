@@ -4,6 +4,7 @@ import type { AnalysisBundle } from "../domain/explorer";
 import {
   buildWatchlist,
   observedFromBundle,
+  panelPopulationsFromSegments,
   type PriorityCategory,
   type WatchlistEntry,
 } from "../domain/watchlist";
@@ -28,6 +29,7 @@ const CATEGORY_LABEL: Record<PriorityCategory, string> = {
   ancestry_supported: "Ancestry supports attention",
   review_status_strong: "Strong clinical evidence",
   context_weak: "Weak local-ancestry relevance",
+  ancestry_unresolved: "Ancestry unresolved (no reference group)",
   ancestry_not_available: "Ancestry not available here",
 };
 
@@ -36,6 +38,7 @@ const CATEGORY_BADGE: Record<PriorityCategory, string> = {
   ancestry_supported: "warn",
   review_status_strong: "warn",
   context_weak: "",
+  ancestry_unresolved: "",
   ancestry_not_available: "",
 };
 
@@ -58,9 +61,20 @@ export function Watchlist({
     () => observedFromBundle(bundle.variants),
     [bundle.variants],
   );
+  const panelPops = useMemo(
+    () => panelPopulationsFromSegments(bundle.segments),
+    [bundle.segments],
+  );
   const entries = useMemo(
-    () => buildWatchlist(WATCHLIST_CATALOG, bundle.segments, processed, observed),
-    [bundle.segments, processed, observed],
+    () =>
+      buildWatchlist(
+        WATCHLIST_CATALOG,
+        bundle.segments,
+        processed,
+        observed,
+        panelPops,
+      ),
+    [bundle.segments, processed, observed, panelPops],
   );
 
   if (role === "patient") {

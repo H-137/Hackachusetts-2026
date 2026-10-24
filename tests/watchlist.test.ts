@@ -128,4 +128,34 @@ describe("buildWatchlist", () => {
     const wl = buildWatchlist([v], segs, new Set(["22"]), prov);
     expect(wl[0]!.phase_established).toBe(false);
   });
+
+  it("marks relevance only for observed findings or ancestry matches", () => {
+    const segs = [seg(1, "22", 0, 2000, "YRI"), seg(2, "22", 0, 2000, "GBR")];
+    // ancestry-relevant: locus YRI matches associated YRI
+    const match = variant({ associated_populations: ["YRI"], founder_variant: true });
+    // not relevant: associated AJ, no match, unobserved
+    const noMatch = variant({ variant_id: "Y", associated_populations: ["AJ"], founder_variant: true });
+    const wl = buildWatchlist([match, noMatch], segs, new Set(["22"]));
+    const byId = Object.fromEntries(wl.map((e) => [e.variant.variant_id, e]));
+    expect(byId["X"]!.relevance).toBe("ancestry_relevant");
+    expect(byId["Y"]!.relevance).toBe("not_relevant");
+  });
+
+  it("observed carrier is relevant as an observed finding", () => {
+    const v = variant({ rsid: "rs334", clinical_allele: "A" });
+    const prov: Record<string, ObservedProvenance> = {
+      rs334: { measurement_status: "observed", genotype: "A/A" },
+    };
+    const wl = buildWatchlist([v], [], new Set(["22"]), prov);
+    expect(wl[0]!.relevance).toBe("observed_finding");
+  });
+
+  it("observed homozygous-reference is NOT relevant", () => {
+    const v = variant({ rsid: "rs334", clinical_allele: "A" });
+    const prov: Record<string, ObservedProvenance> = {
+      rs334: { measurement_status: "observed", genotype: "T/T" },
+    };
+    const wl = buildWatchlist([v], [], new Set(["22"]), prov);
+    expect(wl[0]!.relevance).toBe("not_relevant");
+  });
 });

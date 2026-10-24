@@ -119,6 +119,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="Comma-separated processed chromosomes, e.g. 22.")
     wp.add_argument("--raw", default=None, help="AncestryDNA raw file for observed status (optional).")
     wp.add_argument("--out", default=None, help="Optional output JSON path.")
+    wp.add_argument("--panel", default="1kg_phase3_26pop",
+                    help="Reference-panel id used for the run; its population set "
+                         "determines which associations are resolvable.")
     wp.set_defaults(func=_cmd_watchlist)
 
     ap_ = sub.add_parser("ancestry", help="Run RFMix local ancestry on a phased chromosome.")
@@ -127,6 +130,9 @@ def main(argv: list[str] | None = None) -> int:
     ap_.add_argument("--sample-id", required=True, help="Query sample id (VCF column).")
     ap_.add_argument("--out-dir", required=True, help="Output directory.")
     ap_.add_argument("--range", default=None, help="Optional Mbp range, e.g. 20-22.")
+    ap_.add_argument("--panel", default="1kg_phase3_26pop",
+                     help="Reference-panel id from pipeline/reference/panels.json "
+                          "(default: 1kg_phase3_26pop; expanded: 1kg_phase3_plus_aj_v2).")
     ap_.set_defaults(func=_cmd_ancestry)
 
     args = ap.parse_args(argv)
@@ -164,9 +170,22 @@ def _cmd_watchlist(args: argparse.Namespace) -> int:
         prov = {k: val.as_dict() for k, val in lookup_raw_rows(Path(args.raw), cvars).items()}
     clin = {v.variant_id: (v.alt or "") for v in CATALOG}
 
-    wl = build_watchlist(catalog(), segments, processed, prov, clin)
+    # Resolve the active panel so association-compatibility knows which
+    # populations are actually resolvable (an association with no reference group
+    # becomes 'ancestry_unresolved', not 'mismatch').
+    from .panels import get_panel
+    panel = get_panel(getattr(args, "panel", "1kg_phase3_26pop"))
+    wl = build_watchlist(
+        catalog(), segments, processed, prov, clin,
+        panel_superpop_map=panel.superpop_map(),
+        panel_populations=set(panel.populations()),
+    )
     report = {
         "provenance": catalog_provenance(),
+        "reference_panel": {
+            "panel_id": panel.panel_id, "version": panel.version,
+            "populations": panel.populations(),
+        },
         "processed_chromosomes": sorted(processed),
         "watchlist_size": len(wl),
         "watchlist": wl,
@@ -180,23 +199,43 @@ def _cmd_watchlist(args: argparse.Namespace) -> int:
 
 
 def _cmd_ancestry(args: argparse.Namespace) -> int:
+    from .panels import get_panel
+
     manifest = load_manifest()
     rfmix = REPO_ROOT / manifest["assets"]["ancestry_tool_rfmix"]["local_path"]
-    panel_dir = REPO_ROOT / manifest["assets"]["phased_panel"]["local_dir"]
     gm_dir = REPO_ROOT / manifest["assets"]["genetic_map"]["local_dir"]
-    panel_meta = REPO_ROOT / "pipeline/reference/assets/panel_meta/samples.panel"
-    ref_vcf = panel_dir / f"ALL.chr{args.chrom}.phase3.genotypes.vcf.gz"
+
+    # Resolve the reference panel from the registry (NOT a hardcoded path). The
+    # panel descriptor supplies the sample map, the reference VCF, the genome
+    # build, and the provenance stamped into every result.
+    try:
+        panel = get_panel(args.panel)
+    except KeyError as e:
+        print(str(e), file=sys.stderr)
+        return 2
+
+    panel_meta = panel.sample_map_path()
+    ref_vcf = panel.reference_vcf_path(args.chrom)
+    if ref_vcf is None:
+        print(f"Panel '{panel.panel_id}' has no reference_vcf_template.", file=sys.stderr)
+        return 2
 
     for p, what in [(rfmix, "RFMix binary"), (ref_vcf, "reference panel"),
                     (panel_meta, "panel metadata")]:
         if not p.exists():
-            print(f"{what} not found at {p}. Run setup/download-panel first.", file=sys.stderr)
+            print(f"{what} not found at {p}. Run setup/download-panel or build "
+                  f"the expanded panel first.", file=sys.stderr)
             return 2
 
     out_dir = Path(args.out_dir)
     gmap = build_rfmix_genetic_map(
         gm_dir / f"plink.chr{args.chrom}.GRCh37.map", out_dir / f"rfmix.chr{args.chrom}.map")
-    sample_map, n_ref = build_sample_map(panel_meta, ref_vcf, out_dir / "sample_map.tsv")
+    sample_map, n_ref = build_sample_map(
+        panel_meta, ref_vcf, out_dir / "sample_map.tsv", level=panel.level)
+
+    provenance = panel.provenance()
+    provenance["reference_vcf"] = ref_vcf.name
+    provenance["reference_samples_in_vcf"] = n_ref
 
     extra = ["--analyze-range=" + args.range] if args.range else None
     msp = run_rfmix(
@@ -205,19 +244,25 @@ def _cmd_ancestry(args: argparse.Namespace) -> int:
         out_basename=out_dir / f"rfmix.chr{args.chrom}", rfmix_bin=rfmix, extra_args=extra,
     )
     segments, summary = parse_msp_to_segments(
-        msp, args.sample_id, [], ref_vcf.name)
+        msp, args.sample_id, [], ref_vcf.name, panel_provenance=provenance)
     summary.reference_samples = n_ref
 
     seg_out = out_dir / f"segments.chr{args.chrom}.json"
     seg_out.write_text(json.dumps(segments, indent=2), encoding="utf-8")
 
     # Span-based per-chromosome composition (explicit denominator; reconciles).
-    comp = compose_by_span(segments, args.chrom).as_dict()
+    # Super-population rollup comes from the active panel (so new populations
+    # such as AJ roll up correctly instead of silently becoming OTHER).
+    comp = compose_by_span(
+        segments, args.chrom, superpop_map=panel.superpop_map()).as_dict()
     comp_out = out_dir / f"composition.chr{args.chrom}.json"
     comp_out.write_text(json.dumps(comp, indent=2), encoding="utf-8")
 
     json.dump({"ancestry": summary.as_dict(), "segments_file": str(seg_out),
-               "composition_file": str(comp_out), "composition": comp},
+               "composition_file": str(comp_out), "composition": comp,
+               "panel": {"panel_id": panel.panel_id, "version": panel.version,
+                         "populations": panel.populations(),
+                         "n_populations": len(panel.populations())}},
               sys.stdout, indent=2)
     sys.stdout.write("\n")
     return 0

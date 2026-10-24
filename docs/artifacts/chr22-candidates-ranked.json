@@ -1,0 +1,935 @@
+[
+  {
+    "clinvar_uid": "222816",
+    "accession": "VCV000222816",
+    "title": "NM_005138.3(SCO2):c.16_17insAGCATGCAGCAGTGACTCA (p.Arg6fs)",
+    "variant_type": "Insertion",
+    "genes": [
+      "NCAPH2",
+      "SCO2"
+    ],
+    "protein_change": "R6fs",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2025/12/14 00:00",
+    "traits": [
+      "SCO2-related disorder",
+      "Cardioencephalomyopathy, fatal infantile, due to cytochrome c oxidase deficiency 1",
+      "Myopia 6",
+      "not provided",
+      "Cardioencephalomyopathy, fatal infantile, due to cytochrome c oxidase deficiency 1"
+    ],
+    "chr": "22",
+    "start37": "50962824",
+    "stop37": "50962825",
+    "canonical_spdi": "NC_000022.11:50524395::TGAGTCACTGCTGCATGCT",
+    "rsid": "rs749838192",
+    "clinvar_gnomad_global_af": 0.00091,
+    "gnomad_variant_id": "22-50962824-C-CTGAGTCACTGCTGCATGCT",
+    "gnomad_rsids": [
+      "rs749838192"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.01008,
+      "nfe": 0.00071,
+      "oth": 0.00276
+    },
+    "enrichment": {
+      "top_pop": "fin",
+      "top_af": 0.010080645161290322,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "128042",
+    "accession": "VCV000128042",
+    "title": "NM_007194.4(CHEK2):c.1100del (p.Thr367fs)",
+    "variant_type": "Deletion",
+    "genes": [
+      "CHEK2"
+    ],
+    "protein_change": "T146fs, T338fs, T410fs, T300fs, T367fs",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2026/08/11 00:00",
+    "traits": [
+      "Colorectal cancer",
+      "Predisposition to cancer",
+      "Hereditary cancer-predisposing syndrome",
+      "CHEK2-related disorder",
+      "CHEK2-related cancer predisposition",
+      "Familial prostate cancer",
+      "Bone osteosarcoma",
+      "Familial cancer of breast",
+      "Familial prostate cancer",
+      "Colorectal cancer",
+      "Inherited prostate cancer",
+      "Inherited breast cancer and ovarian cancer",
+      "NICE approved PARP inhibitor treatment",
+      "Breast and/or ovarian cancer",
+      "CHEK2-related cancer predisposition",
+      "Prostate cancer",
+      "Familial cancer of breast",
+      "Bone osteosarcoma",
+      "Breast neoplasm",
+      "not provided",
+      "Hereditary breast ovarian cancer syndrome",
+      "Li-Fraumeni syndrome 1",
+      "CHEK2-related cancer predisposition",
+      "Breast and colorectal cancer, susceptibility to",
+      "Prostate cancer",
+      "Breast-ovarian cancer, familial, susceptibility to, 1",
+      "Li-Fraumeni syndrome",
+      "Familial cancer of breast"
+    ],
+    "chr": "22",
+    "start37": "29091857",
+    "stop37": "29091857",
+    "canonical_spdi": "NC_000022.11:28695868:G:",
+    "rsid": "rs555607708",
+    "clinvar_gnomad_global_af": 0.00204,
+    "gnomad_variant_id": "22-29091856-AG-A",
+    "gnomad_rsids": [
+      "rs555607708"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00057,
+      "amr": 0.0,
+      "asj": 0.0069,
+      "eas": 0.0,
+      "fin": 0.00863,
+      "nfe": 0.00266,
+      "oth": 0.00368
+    },
+    "enrichment": {
+      "top_pop": "fin",
+      "top_af": 0.00863060989643268,
+      "ratio": 5.3,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "445946",
+    "accession": "VCV000445946",
+    "title": "NM_016327.3(UPB1):c.917-1G>A",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "UPB1"
+    ],
+    "protein_change": "",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2026/02/25 00:00",
+    "traits": [
+      "UPB1-related disorder",
+      "Inborn genetic diseases",
+      "not provided",
+      "Deficiency of beta-ureidopropionase"
+    ],
+    "chr": "22",
+    "start37": "24919586",
+    "stop37": "24919586",
+    "canonical_spdi": "NC_000022.11:24523617:G:A",
+    "rsid": "rs143493067",
+    "clinvar_gnomad_global_af": 0.00194,
+    "gnomad_variant_id": "22-24919586-G-A",
+    "gnomad_rsids": [
+      "rs143493067"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00011,
+      "amr": 0.00118,
+      "asj": 0.00345,
+      "eas": 0.0,
+      "fin": 0.00115,
+      "nfe": 0.00331,
+      "oth": 0.00092
+    },
+    "enrichment": {
+      "top_pop": "asj",
+      "top_af": 0.0034482758620689655,
+      "ratio": 3.3,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "549753",
+    "accession": "VCV000549753",
+    "title": "NM_006767.4(LZTR1):c.1407G>A (p.Trp469Ter)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "LZTR1"
+    ],
+    "protein_change": "W469*",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2024/10/17 00:00",
+    "traits": [
+      "LZTR1-related disorder",
+      "Cardiovascular phenotype",
+      "Hereditary cancer-predisposing syndrome",
+      "not provided",
+      "Noonan syndrome 2"
+    ],
+    "chr": "22",
+    "start37": "21348266",
+    "stop37": "21348266",
+    "canonical_spdi": "NC_000022.11:20993976:G:A",
+    "rsid": "rs777243508",
+    "clinvar_gnomad_global_af": 0.00019,
+    "gnomad_variant_id": "22-21348266-G-A",
+    "gnomad_rsids": [
+      "rs777243508"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00011,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.00144,
+      "nfe": 6e-05,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "fin",
+      "top_af": 0.0014392630972941854,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "3057",
+    "accession": "VCV000003057",
+    "title": "NM_000487.6(ARSA):c.542T>G (p.Ile181Ser)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "ARSA"
+    ],
+    "protein_change": "I181S, I95S",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2026/09/17 00:00",
+    "traits": [
+      "ARSA-related disorder",
+      "Inborn genetic diseases",
+      "not provided",
+      "Metachromatic leukodystrophy"
+    ],
+    "chr": "22",
+    "start37": "51065404",
+    "stop37": "51065404",
+    "canonical_spdi": "NC_000022.11:50626975:A:C",
+    "rsid": "rs74315457",
+    "clinvar_gnomad_global_af": 0.00029,
+    "gnomad_variant_id": "22-51065404-A-C",
+    "gnomad_rsids": [
+      "rs74315457"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.00086,
+      "nfe": 0.00123,
+      "oth": 0.00092
+    },
+    "enrichment": {
+      "top_pop": "nfe",
+      "top_af": 0.0012331256490134995,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "541735",
+    "accession": "VCV000541735",
+    "title": "NM_001282225.2(ADA2):c.973-2A>G",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "ADA2"
+    ],
+    "protein_change": "",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2026/07/13 00:00",
+    "traits": [
+      "Sneddon syndrome",
+      "Deficiency of adenosine deaminase 2",
+      "Deficiency of adenosine deaminase 2",
+      "Sneddon syndrome",
+      "not provided",
+      "ADA2-related disorder"
+    ],
+    "chr": "22",
+    "start37": "17669339",
+    "stop37": "17669339",
+    "canonical_spdi": "NC_000022.11:17188448:T:C",
+    "rsid": "rs139750129",
+    "clinvar_gnomad_global_af": 0.00012,
+    "gnomad_variant_id": "22-17669339-T-C",
+    "gnomad_rsids": [
+      "rs139750129"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.00115,
+      "nfe": 0.00013,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "fin",
+      "top_af": 0.0011507479861910242,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "3435",
+    "accession": "VCV000003435",
+    "title": "NM_024105.4(ALG12):c.437G>A (p.Arg146Gln)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "ALG12"
+    ],
+    "protein_change": "R146Q",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2025/11/06 00:00",
+    "traits": [
+      "not provided",
+      "ALG12-related disorder",
+      "ALG12-congenital disorder of glycosylation"
+    ],
+    "chr": "22",
+    "start37": "50304114",
+    "stop37": "50304114",
+    "canonical_spdi": "NC_000022.11:49910465:C:T",
+    "rsid": "rs121907932",
+    "clinvar_gnomad_global_af": 0.00016,
+    "gnomad_variant_id": "22-50304114-C-T",
+    "gnomad_rsids": [
+      "rs121907932"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00011,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 6e-05,
+      "oth": 0.00092
+    },
+    "enrichment": {
+      "top_pop": "oth",
+      "top_af": 0.0009191176470588235,
+      "ratio": null,
+      "superpop": "UNKNOWN"
+    }
+  },
+  {
+    "clinvar_uid": "3051",
+    "accession": "VCV000003051",
+    "title": "NM_000487.6(ARSA):c.465+1G>A",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "ARSA"
+    ],
+    "protein_change": "",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2026/09/17 00:00",
+    "traits": [
+      "ARSA-related disorder",
+      "Neurodevelopmental disorder",
+      "Inborn genetic diseases",
+      "not provided",
+      "Metachromatic leukodystrophy, adult type",
+      "Metachromatic leukodystrophy",
+      "See cases"
+    ],
+    "chr": "22",
+    "start37": "51065593",
+    "stop37": "51065593",
+    "canonical_spdi": "NC_000022.11:50627164:C:T",
+    "rsid": "rs80338815",
+    "clinvar_gnomad_global_af": 0.00087,
+    "gnomad_variant_id": "22-51065593-C-T",
+    "gnomad_rsids": [
+      "rs80338815"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00012,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 0.00071,
+      "oth": 0.00092
+    },
+    "enrichment": {
+      "top_pop": "oth",
+      "top_af": 0.0009191176470588235,
+      "ratio": null,
+      "superpop": "UNKNOWN"
+    }
+  },
+  {
+    "clinvar_uid": "1490",
+    "accession": "VCV000001490",
+    "title": "NM_001039141.3(TRIOBP):c.1039C>T (p.Arg347Ter)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "TRIOBP"
+    ],
+    "protein_change": "R347*",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2025/12/10 00:00",
+    "traits": [
+      "TRIOBP-related disorder",
+      "not provided",
+      "Autosomal recessive nonsyndromic hearing loss 28"
+    ],
+    "chr": "22",
+    "start37": "38119602",
+    "stop37": "38119602",
+    "canonical_spdi": "NC_000022.11:37723594:C:T",
+    "rsid": "rs118204026",
+    "clinvar_gnomad_global_af": 0.0001,
+    "gnomad_variant_id": "22-38119602-C-T",
+    "gnomad_rsids": [
+      "rs118204026"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.00064,
+      "fin": 0.0,
+      "nfe": 0.00013,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "eas",
+      "top_af": 0.0006426735218508997,
+      "ratio": null,
+      "superpop": "EAS"
+    }
+  },
+  {
+    "clinvar_uid": "3052",
+    "accession": "VCV000003052",
+    "title": "NM_000487.6(ARSA):c.1283C>T (p.Pro428Leu)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "ARSA"
+    ],
+    "protein_change": "P428L, P342L",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2026/09/17 00:00",
+    "traits": [
+      "Fetal anomalies with a likely genetic cause",
+      "ARSA-related disorder",
+      "not provided",
+      "Metachromatic leukodystrophy",
+      "See cases"
+    ],
+    "chr": "22",
+    "start37": "51063820",
+    "stop37": "51063820",
+    "canonical_spdi": "NC_000022.11:50625391:G:A",
+    "rsid": "rs28940893",
+    "clinvar_gnomad_global_af": 0.00039,
+    "gnomad_variant_id": "22-51063820-G-A",
+    "gnomad_rsids": [
+      "rs28940893"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.00058,
+      "nfe": 0.00052,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "fin",
+      "top_af": 0.0005753739930955121,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "2150335",
+    "accession": "VCV002150335",
+    "title": "NM_032608.7(MYO18B):c.1982G>A (p.Trp661Ter)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "MYO18B"
+    ],
+    "protein_change": "W661*",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2025/11/25 00:00",
+    "traits": [
+      "MYO18B-related disorder",
+      "not provided"
+    ],
+    "chr": "22",
+    "start37": "26173662",
+    "stop37": "26173662",
+    "canonical_spdi": "NC_000022.11:25777694:G:A",
+    "rsid": "rs372939044",
+    "clinvar_gnomad_global_af": 0.00017,
+    "gnomad_variant_id": "22-26173662-G-A",
+    "gnomad_rsids": [
+      "rs372939044"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00057,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 0.0,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "afr",
+      "top_af": 0.000573921028466483,
+      "ratio": null,
+      "superpop": "AFR"
+    }
+  },
+  {
+    "clinvar_uid": "425281",
+    "accession": "VCV000425281",
+    "title": "NM_000631.5(NCF4):c.118-1G>A",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "NCF4",
+      "NCF4-AS1"
+    ],
+    "protein_change": "",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2025/12/08 00:00",
+    "traits": [
+      "NCF4-related disorder",
+      "Primary immunodeficiency or monogenic inflammatory bowel disease",
+      "not provided",
+      "Granulomatous disease, chronic, autosomal recessive, cytochrome b-positive, type 3"
+    ],
+    "chr": "22",
+    "start37": "37260960",
+    "stop37": "37260960",
+    "canonical_spdi": "NC_000022.11:36864917:G:A",
+    "rsid": "rs28445840",
+    "clinvar_gnomad_global_af": 0.00012,
+    "gnomad_variant_id": "22-37260960-G-A",
+    "gnomad_rsids": [
+      "rs28445840"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 0.00033,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "nfe",
+      "top_af": 0.00032598774286086844,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "30819",
+    "accession": "VCV000030819",
+    "title": "NM_018006.5(TRMU):c.835G>A (p.Val279Met)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "TRMU"
+    ],
+    "protein_change": "V279M, V165M, V139M",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2026/01/28 00:00",
+    "traits": [
+      "TRMU-related disorder",
+      "Inborn genetic diseases",
+      "Acute infantile liver failure due to synthesis defect of mtDNA-encoded proteins",
+      "Aminoglycoside-induced deafness",
+      "not provided",
+      "Aminoglycoside-induced deafness",
+      "Acute infantile liver failure due to synthesis defect of mtDNA-encoded proteins"
+    ],
+    "chr": "22",
+    "start37": "46749726",
+    "stop37": "46749726",
+    "canonical_spdi": "NC_000022.11:46353828:G:A",
+    "rsid": "rs387907022",
+    "clinvar_gnomad_global_af": 0.00017,
+    "gnomad_variant_id": "22-46749726-G-A",
+    "gnomad_rsids": [
+      "rs387907022"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 0.00032,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "nfe",
+      "top_af": 0.0003242121644404098,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "5681",
+    "accession": "VCV000005681",
+    "title": "NM_005138.3(SCO2):c.418G>A (p.Glu140Lys)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "NCAPH2",
+      "SCO2"
+    ],
+    "protein_change": "E140K",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2026/01/21 00:00",
+    "traits": [
+      "SCO2-related disorder",
+      "Cardioencephalomyopathy, fatal infantile, due to cytochrome c oxidase deficiency 1",
+      "Myopia 6",
+      "not provided",
+      "Cardioencephalomyopathy, fatal infantile, due to cytochrome c oxidase deficiency 1",
+      "Severe global developmental delay",
+      "Seizure",
+      "Tip-toe gait"
+    ],
+    "chr": "22",
+    "start37": "50962423",
+    "stop37": "50962423",
+    "canonical_spdi": "NC_000022.11:50523993:C:T",
+    "rsid": "rs74315511",
+    "clinvar_gnomad_global_af": 0.00012,
+    "gnomad_variant_id": "22-50962423-C-T",
+    "gnomad_rsids": [
+      "rs74315511"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 0.00032,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "nfe",
+      "top_af": 0.0003242121644404098,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "120299",
+    "accession": "VCV000120299",
+    "title": "NM_001282225.2(ADA2):c.1358A>G (p.Tyr453Cys)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "ADA2"
+    ],
+    "protein_change": "Y453C, Y411C, Y212C, Y333C",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2026/04/28 00:00",
+    "traits": [
+      "Autosomal recessive ADA2-related disorders",
+      "ADA2-related disorder",
+      "Autoinflammatory syndrome",
+      "Deficiency of adenosine deaminase 2",
+      "Sneddon syndrome",
+      "Deficiency of adenosine deaminase 2",
+      "not provided"
+    ],
+    "chr": "22",
+    "start37": "17662794",
+    "stop37": "17662794",
+    "canonical_spdi": "NC_000022.11:17181903:T:C",
+    "rsid": "rs376785840",
+    "clinvar_gnomad_global_af": 0.00012,
+    "gnomad_variant_id": "22-17662794-T-C",
+    "gnomad_rsids": [
+      "rs376785840"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.00029,
+      "nfe": 0.00026,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "fin",
+      "top_af": 0.00028768699654775604,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "620162",
+    "accession": "VCV000620162",
+    "title": "NM_001039141.3(TRIOBP):c.1933C>T (p.Gln645Ter)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "TRIOBP"
+    ],
+    "protein_change": "Q645*",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2025/12/12 00:00",
+    "traits": [
+      "not provided",
+      "TRIOBP-related disorder",
+      "Autosomal recessive nonsyndromic hearing loss 28"
+    ],
+    "chr": "22",
+    "start37": "38120496",
+    "stop37": "38120496",
+    "canonical_spdi": "NC_000022.11:37724488:C:T",
+    "rsid": "rs377748152",
+    "clinvar_gnomad_global_af": 0.00016,
+    "gnomad_variant_id": "22-38120496-C-T",
+    "gnomad_rsids": [
+      "rs377748152"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00012,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 0.00026,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "nfe",
+      "top_af": 0.0002610625244746117,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "862150",
+    "accession": "VCV000862150",
+    "title": "NM_024105.4(ALG12):c.295+1G>A",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "ALG12"
+    ],
+    "protein_change": "",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2026/09/08 00:00",
+    "traits": [
+      "not provided",
+      "ALG12-related disorder",
+      "ALG12-congenital disorder of glycosylation"
+    ],
+    "chr": "22",
+    "start37": "50307032",
+    "stop37": "50307032",
+    "canonical_spdi": "NC_000022.11:49913383:C:T",
+    "rsid": "rs376314741",
+    "clinvar_gnomad_global_af": 0.0001,
+    "gnomad_variant_id": "22-50307032-C-T",
+    "gnomad_rsids": [
+      "rs376314741"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.0,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 0.00019,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "nfe",
+      "top_af": 0.00019440124416796267,
+      "ratio": null,
+      "superpop": "EUR"
+    }
+  },
+  {
+    "clinvar_uid": "1071875",
+    "accession": "VCV001071875",
+    "title": "NM_016327.3(UPB1):c.352C>T (p.Gln118Ter)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "UPB1"
+    ],
+    "protein_change": "Q118*",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2025/06/19 00:00",
+    "traits": [
+      "Deficiency of beta-ureidopropionase",
+      "not provided"
+    ],
+    "chr": "22",
+    "start37": "24898169",
+    "stop37": "24898169",
+    "canonical_spdi": "NC_000022.11:24502200:C:T",
+    "rsid": "rs140157113",
+    "clinvar_gnomad_global_af": 0.00012,
+    "gnomad_variant_id": "22-24898169-C-T",
+    "gnomad_rsids": [
+      "rs140157113"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00011,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 6e-05,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "afr",
+      "top_af": 0.00011494252873563218,
+      "ratio": null,
+      "superpop": "AFR"
+    }
+  },
+  {
+    "clinvar_uid": "128071",
+    "accession": "VCV000128071",
+    "title": "NM_007194.4(CHEK2):c.349A>G (p.Arg117Gly)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "CHEK2"
+    ],
+    "protein_change": "R117G, R160G",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic/Likely pathogenic",
+    "last_evaluated": "2026/08/06 00:00",
+    "traits": [
+      "CHEK2-related cancer predisposition",
+      "Familial prostate cancer",
+      "Bone osteosarcoma",
+      "CHEK2-related disorder",
+      "Predisposition to cancer",
+      "Inherited breast cancer and ovarian cancer",
+      "Prostate cancer susceptibility",
+      "Breast cancer, susceptibility to",
+      "Breast and/or ovarian cancer",
+      "Hereditary cancer-predisposing syndrome",
+      "not provided",
+      "Hereditary breast ovarian cancer syndrome",
+      "CHEK2-related cancer predisposition",
+      "Familial cancer of breast",
+      "Malignant tumor of breast"
+    ],
+    "chr": "22",
+    "start37": "29121326",
+    "stop37": "29121326",
+    "canonical_spdi": "NC_000022.11:28725337:T:C",
+    "rsid": "rs28909982",
+    "clinvar_gnomad_global_af": 0.00019,
+    "gnomad_variant_id": "22-29121326-T-C",
+    "gnomad_rsids": [
+      "rs28909982"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00011,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 6e-05,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "afr",
+      "top_af": 0.0001148105625717566,
+      "ratio": null,
+      "superpop": "AFR"
+    }
+  },
+  {
+    "clinvar_uid": "204807",
+    "accession": "VCV000204807",
+    "title": "NM_000026.4(ADSL):c.340T>C (p.Tyr114His)",
+    "variant_type": "single nucleotide variant",
+    "genes": [
+      "ADSL"
+    ],
+    "protein_change": "Y114H, Y50H",
+    "review_status": "criteria provided, multiple submitters, no conflicts",
+    "clinsig": "Pathogenic",
+    "last_evaluated": "2026/01/08 00:00",
+    "traits": [
+      "ADSL-related disorder",
+      "Inborn genetic diseases",
+      "not provided",
+      "Adenylosuccinate lyase deficiency",
+      "Progressive neurologic deterioration",
+      "Inability to walk",
+      "Generalized myoclonic seizure",
+      "Severe global developmental delay",
+      "Difficulty standing"
+    ],
+    "chr": "22",
+    "start37": "40746022",
+    "stop37": "40746022",
+    "canonical_spdi": "NC_000022.11:40350017:T:C",
+    "rsid": "rs374259530",
+    "clinvar_gnomad_global_af": 0.0001,
+    "gnomad_variant_id": "22-40746022-T-C",
+    "gnomad_rsids": [
+      "rs374259530"
+    ],
+    "gnomad_freqs": {
+      "afr": 0.00011,
+      "amr": 0.0,
+      "asj": 0.0,
+      "eas": 0.0,
+      "fin": 0.0,
+      "nfe": 0.0,
+      "oth": 0.0
+    },
+    "enrichment": {
+      "top_pop": "afr",
+      "top_af": 0.0001147842056932966,
+      "ratio": null,
+      "superpop": "AFR"
+    }
+  }
+]
