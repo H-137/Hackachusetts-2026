@@ -97,6 +97,18 @@
       "note": "GENCODE release 19 is the canonical GRCh37 annotation.",
       "license": "GENCODE/Ensembl: freely available; verify current terms at https://www.gencodegenes.org",
       "sha256": null
+    },
+    "ancestry_tool_rfmix": {
+      "id": "rfmix_2.03",
+      "role": "Local ancestry inference (Step 4). Infers per-segment ancestry on phased data against labeled reference populations.",
+      "version_string": "v2.03-r0",
+      "source_repo": "https://github.com/slowkoni/rfmix",
+      "build": "Built from source (autoreconf && ./configure && make). Requires automake.",
+      "build_patch": "Removed hardcoded x86 flag '-march=core2' from Makefile.am to compile on Apple Silicon/clang; it is an optimization hint, not functionally required.",
+      "runtime": "native binary",
+      "license": "Non-commercial academic research use only (Bustamante Lab, Stanford). Commercial licensing: cdbadmin@stanford.edu. Appropriate for this research prototype; do NOT use for commercial or clinical deployment.",
+      "local_path": "pipeline/reference/assets/tools/rfmix/rfmix",
+      "manual": "https://github.com/slowkoni/rfmix/blob/master/MANUAL.md"
     }
   },
   "resolved_toolchain": {

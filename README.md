@@ -22,7 +22,11 @@ chromosome explorer.
   `docs/step-02-harmonization.md`.
 - Step 3 — statistical phasing with Beagle 5.5 (single-sample, reference
   assisted) plus an explicit family-aware Mendelian-consistency layer. Validated
-  on a real chr22 window. See `docs/step-03-phasing.md`.
+  on real chr20/21/22. See `docs/step-03-phasing.md`.
+- Step 4 — local ancestry inference with RFMix 2.03 (built from source) against
+  the 26 fine-grain 1000 Genomes reference populations. Results are framed as
+  inferred similarity to reference populations; sub-continental resolution from
+  consumer-array data is not validated. See `docs/step-04-ancestry.md`.
 
 ### Step 3 phasing
 

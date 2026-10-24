@@ -18,6 +18,12 @@ from pathlib import Path
 
 from .harmonize import harmonize
 from .parser import parse_ancestrydna
+from .ancestry import (
+    build_rfmix_genetic_map,
+    build_sample_map,
+    parse_msp_to_segments,
+    run_rfmix,
+)
 from .phasing import phase_chromosome, phase_genome
 from .reference import (
     REPO_ROOT,
@@ -105,8 +111,53 @@ def main(argv: list[str] | None = None) -> int:
     gp.add_argument("--out-dir", required=True, help="Output directory for phased VCFs.")
     gp.set_defaults(func=_cmd_phase_genome)
 
+    ap_ = sub.add_parser("ancestry", help="Run RFMix local ancestry on a phased chromosome.")
+    ap_.add_argument("--query", required=True, help="Phased query .vcf.gz for the chromosome.")
+    ap_.add_argument("--chrom", required=True, help="Chromosome (e.g. 22).")
+    ap_.add_argument("--sample-id", required=True, help="Query sample id (VCF column).")
+    ap_.add_argument("--out-dir", required=True, help="Output directory.")
+    ap_.add_argument("--range", default=None, help="Optional Mbp range, e.g. 20-22.")
+    ap_.set_defaults(func=_cmd_ancestry)
+
     args = ap.parse_args(argv)
     return args.func(args)
+
+
+def _cmd_ancestry(args: argparse.Namespace) -> int:
+    manifest = load_manifest()
+    rfmix = REPO_ROOT / manifest["assets"]["ancestry_tool_rfmix"]["local_path"]
+    panel_dir = REPO_ROOT / manifest["assets"]["phased_panel"]["local_dir"]
+    gm_dir = REPO_ROOT / manifest["assets"]["genetic_map"]["local_dir"]
+    panel_meta = REPO_ROOT / "pipeline/reference/assets/panel_meta/samples.panel"
+    ref_vcf = panel_dir / f"ALL.chr{args.chrom}.phase3.genotypes.vcf.gz"
+
+    for p, what in [(rfmix, "RFMix binary"), (ref_vcf, "reference panel"),
+                    (panel_meta, "panel metadata")]:
+        if not p.exists():
+            print(f"{what} not found at {p}. Run setup/download-panel first.", file=sys.stderr)
+            return 2
+
+    out_dir = Path(args.out_dir)
+    gmap = build_rfmix_genetic_map(
+        gm_dir / f"plink.chr{args.chrom}.GRCh37.map", out_dir / f"rfmix.chr{args.chrom}.map")
+    sample_map, n_ref = build_sample_map(panel_meta, ref_vcf, out_dir / "sample_map.tsv")
+
+    extra = ["--analyze-range=" + args.range] if args.range else None
+    msp = run_rfmix(
+        query_vcf=Path(args.query), reference_vcf=ref_vcf, sample_map=sample_map,
+        genetic_map=gmap, chromosome=args.chrom,
+        out_basename=out_dir / f"rfmix.chr{args.chrom}", rfmix_bin=rfmix, extra_args=extra,
+    )
+    segments, summary = parse_msp_to_segments(
+        msp, args.sample_id, [], ref_vcf.name)
+    summary.reference_samples = n_ref
+
+    seg_out = out_dir / f"segments.chr{args.chrom}.json"
+    seg_out.write_text(json.dumps(segments, indent=2), encoding="utf-8")
+    json.dump({"ancestry": summary.as_dict(), "segments_file": str(seg_out)},
+              sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0
 
 
 def _cmd_phase_genome(args: argparse.Namespace) -> int:
