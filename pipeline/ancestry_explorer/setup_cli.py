@@ -112,6 +112,15 @@ def main(argv: list[str] | None = None) -> int:
     gp.add_argument("--out-dir", required=True, help="Output directory for phased VCFs.")
     gp.set_defaults(func=_cmd_phase_genome)
 
+    wp = sub.add_parser("watchlist", help="Build the ancestry-informed pathogenic-variant watchlist.")
+    wp.add_argument("--segments", action="append", default=[],
+                    help="Path to a segments.chrN.json file (repeatable).")
+    wp.add_argument("--chroms", required=True,
+                    help="Comma-separated processed chromosomes, e.g. 22.")
+    wp.add_argument("--raw", default=None, help="AncestryDNA raw file for observed status (optional).")
+    wp.add_argument("--out", default=None, help="Optional output JSON path.")
+    wp.set_defaults(func=_cmd_watchlist)
+
     ap_ = sub.add_parser("ancestry", help="Run RFMix local ancestry on a phased chromosome.")
     ap_.add_argument("--query", required=True, help="Phased query .vcf.gz for the chromosome.")
     ap_.add_argument("--chrom", required=True, help="Chromosome (e.g. 22).")
@@ -122,6 +131,52 @@ def main(argv: list[str] | None = None) -> int:
 
     args = ap.parse_args(argv)
     return args.func(args)
+
+
+def _cmd_watchlist(args: argparse.Namespace) -> int:
+    from dataclasses import dataclass
+
+    from .catalog import CATALOG, catalog, catalog_provenance
+    from .raw_lookup import lookup_raw_rows
+    from .watchlist import build_watchlist
+
+    segments: list = []
+    for sp in args.segments:
+        segments.extend(json.loads(Path(sp).read_text()))
+    processed = {c.strip() for c in args.chroms.split(",") if c.strip()}
+
+    prov: dict = {}
+    clin: dict = {}
+    if args.raw:
+        @dataclass
+        class _V:
+            rsid: str
+            chromosome: str
+            position_1based: int
+            clinical_allele: str
+            variant_type: str
+            expected_build: str = "GRCh37"
+
+        cvars = [
+            _V(v.rsid, v.chromosome, v.position_1based, (v.alt or ""), v.variant_class)
+            for v in CATALOG if v.rsid
+        ]
+        prov = {k: val.as_dict() for k, val in lookup_raw_rows(Path(args.raw), cvars).items()}
+    clin = {v.variant_id: (v.alt or "") for v in CATALOG}
+
+    wl = build_watchlist(catalog(), segments, processed, prov, clin)
+    report = {
+        "provenance": catalog_provenance(),
+        "processed_chromosomes": sorted(processed),
+        "watchlist_size": len(wl),
+        "watchlist": wl,
+    }
+    if args.out:
+        Path(args.out).write_text(json.dumps(report, indent=2), encoding="utf-8")
+    json.dump({k: report[k] for k in ("provenance", "processed_chromosomes", "watchlist_size")},
+              sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0
 
 
 def _cmd_ancestry(args: argparse.Namespace) -> int:

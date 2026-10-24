@@ -17,6 +17,7 @@ import { ConditionPage } from "./ConditionPage";
 import { RegionClinicalPanel } from "./RegionClinicalPanel";
 import { RegionDetail } from "./RegionDetail";
 import { VariantDetail } from "./VariantDetail";
+import { Watchlist } from "./Watchlist";
 
 interface Props {
   bundle: AnalysisBundle;
@@ -28,7 +29,7 @@ interface Props {
   onTabChange: (tab: string) => void;
 }
 
-type Tab = "overview" | "chromosomes" | "conditions";
+type Tab = "overview" | "watchlist" | "chromosomes" | "conditions";
 
 /**
  * Integrated explorer (plan Step 6). Tabs for a comprehensive overview, the
@@ -110,6 +111,12 @@ export function Explorer({
           Overview
         </button>
         <button
+          className={tab === "watchlist" ? "tab active" : "tab"}
+          onClick={() => setTab("watchlist")}
+        >
+          Watchlist
+        </button>
+        <button
           className={tab === "chromosomes" ? "tab active" : "tab"}
           onClick={() => setTab("chromosomes")}
         >
@@ -134,6 +141,8 @@ export function Explorer({
           onOpenCondition={openCondition}
         />
       )}
+
+      {tab === "watchlist" && <Watchlist bundle={bundle} />}
 
       {tab === "chromosomes" && (
         <section aria-label="Chromosome explorer" className="chrom-tab">
