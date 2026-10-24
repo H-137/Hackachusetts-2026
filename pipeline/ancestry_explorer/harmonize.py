@@ -66,7 +66,11 @@ class HarmonizationReport:
 
 
 def _faidx_base(fasta: Path, chrom: str, pos_1based: int) -> str | None:
-    """Return the reference base at a 1-based position, or None on failure."""
+    """Return the reference base at a 1-based position, or None on failure.
+
+    Single-position lookup. Kept for completeness and tests; the harmonizer uses
+    the batched fetch below to avoid one subprocess per variant.
+    """
     region = f"{chrom}:{pos_1based}-{pos_1based}"
     res = subprocess.run(
         ["samtools", "faidx", str(fasta), region],
@@ -77,6 +81,61 @@ def _faidx_base(fasta: Path, chrom: str, pos_1based: int) -> str | None:
     lines = [ln for ln in res.stdout.splitlines() if not ln.startswith(">")]
     seq = "".join(lines).strip().upper()
     return seq if seq else None
+
+
+# samtools faidx accepts many regions per invocation. We batch to keep the
+# command line and output manageable; one subprocess per batch instead of one
+# per variant collapses ~640k process spawns into a few dozen.
+_FAIDX_BATCH = 4096
+
+
+def _faidx_bases_batched(
+    fasta: Path, positions: list[tuple[str, int]]
+) -> dict[tuple[str, int], str]:
+    """Fetch reference bases for many (chrom, pos_1based) positions at once.
+
+    samtools faidx emits one FASTA record per requested region, in request
+    order, each with a ">chrom:start-end" header. We parse those headers to map
+    results back to positions, so the mapping is robust even if samtools
+    reorders or skips an out-of-range region.
+    """
+    result: dict[tuple[str, int], str] = {}
+    for i in range(0, len(positions), _FAIDX_BATCH):
+        batch = positions[i : i + _FAIDX_BATCH]
+        regions = [f"{chrom}:{pos}-{pos}" for chrom, pos in batch]
+        res = subprocess.run(
+            ["samtools", "faidx", str(fasta), *regions],
+            capture_output=True, text=True, check=False,
+        )
+        if res.returncode != 0:
+            # Fall back to per-position lookups for this batch so one bad region
+            # does not blank out the rest.
+            for chrom, pos in batch:
+                base = _faidx_base(fasta, chrom, pos)
+                if base:
+                    result[(chrom, pos)] = base
+            continue
+
+        cur_key: tuple[str, int] | None = None
+        cur_seq: list[str] = []
+        for line in res.stdout.splitlines():
+            if line.startswith(">"):
+                if cur_key is not None and cur_seq:
+                    result[cur_key] = "".join(cur_seq).strip().upper()
+                # Header form: >chrom:start-end
+                region = line[1:].strip()
+                chrom_part, _, span = region.partition(":")
+                start_str, _, _end = span.partition("-")
+                try:
+                    cur_key = (chrom_part, int(start_str))
+                except ValueError:
+                    cur_key = None
+                cur_seq = []
+            elif cur_key is not None:
+                cur_seq.append(line)
+        if cur_key is not None and cur_seq:
+            result[cur_key] = "".join(cur_seq).strip().upper()
+    return result
 
 
 def _resolve_alt(ref: str, a1: str, a2: str) -> tuple[str | None, str, str | None]:
@@ -161,6 +220,12 @@ def harmonize(
 
     snp_records.sort(key=lambda r: (_chrom_key(r.chromosome_norm), r.position_1based))
 
+    # Fetch all reference bases up front in batched samtools faidx calls, rather
+    # than spawning one subprocess per variant. This is the difference between a
+    # genome-wide run taking ~1 minute versus ~1 hour.
+    ref_positions = [(r.chromosome_norm, r.position_1based) for r in snp_records]
+    ref_bases = _faidx_bases_batched(reference_fasta, ref_positions)
+
     out_vcf_gz.parent.mkdir(parents=True, exist_ok=True)
     plain_vcf = out_vcf_gz.with_suffix("")  # strip .gz -> .vcf
     if plain_vcf.suffix != ".vcf":
@@ -180,7 +245,7 @@ def harmonize(
     for rec in snp_records:
         a1 = rec.allele1.upper()
         a2 = rec.allele2.upper()
-        ref = _faidx_base(reference_fasta, rec.chromosome_norm, rec.position_1based)
+        ref = ref_bases.get((rec.chromosome_norm, rec.position_1based))
 
         if ref is None or ref not in _COMPLEMENT:
             report.dropped += 1

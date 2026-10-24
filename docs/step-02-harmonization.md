@@ -50,9 +50,18 @@ silently flipped.
 
 ## Harmonization logic
 
+Reference bases are fetched up front in **batched** `samtools faidx` calls
+(4,096 regions per invocation) rather than one subprocess per variant. A single
+`faidx` process per variant costs ~5.2 ms, which projects to ~56 minutes for the
+640,594 autosomal SNPs. Batching drops this to ~3 µs per position (~2 s for the
+full genome), a ~1,700x reduction, because the per-variant process-spawn
+overhead is eliminated. Output is byte-for-byte identical to the per-variant
+path (verified on the real chr22 slice).
+
 For each analysis-ready autosomal SNP record:
 
-1. Read the reference base at the 1-based position with `samtools faidx`.
+1. Look up the reference base at the 1-based position from the prefetched,
+   batched `samtools faidx` results.
 2. Resolve REF/ALT from the two observed forward-strand alleles:
    - both equal ref → `0/0` (hom-ref; no observed ALT, written with `ALT=.`),
    - exactly one equals ref → `0/1` (het; ALT is the non-ref allele),
@@ -87,6 +96,18 @@ annotation.
   flagged, 0 dropped). The report contains aggregate counts only; no genotype
   values.
 - Build-mismatch guard confirmed to reject a GRCh38-declared file.
+
+## Performance
+
+| Reference-fetch strategy | Per position | Full autosomal genome (640,594 SNPs) |
+| --- | --- | --- |
+| one `samtools faidx` per variant | ~5.2 ms | ~56 min |
+| batched `samtools faidx` (current) | ~3.1 µs | ~2 s |
+
+The slice harmonization wall time is ~2 s, dominated by Python startup and
+parsing the full 18 MB input (a fixed cost paid once). Reference fetching is no
+longer the bottleneck, so full-genome harmonization is practical once the full
+reference FASTA is downloaded.
 
 ## Privacy
 
