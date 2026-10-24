@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hackachusetts-2026/schemas/normalized.schema.json",
+  "title": "Ancestry-Aware Variant Explorer — Normalized Data Contract",
+  "description": "Language-neutral source of truth for the normalized schema in HACKATHON_PROJECT_PLAN.md Section 8. The Python pipeline and the TypeScript UI both conform to these definitions. Internal coordinates are 0-based, half-open. Raw genetic allele data must never be placed in logs, analytics, error reports, or URLs.",
+  "$defs": {
+    "GenomeBuild": {
+      "type": "string",
+      "enum": ["GRCh37", "GRCh38", "unknown"],
+      "description": "Explicit build. Never silently assumed. AncestryDNA V2.0 declares build 37.1 which maps to GRCh37."
+    },
+    "MeasurementStatus": {
+      "type": "string",
+      "enum": ["observed", "imputed", "not_assayed", "no_call", "excluded"],
+      "description": "not_assayed is used ONLY when assay coverage is known. Absence from an incomplete file may mean unknown coverage, not not_assayed."
+    },
+    "ProcessingStatus": {
+      "type": "string",
+      "enum": [
+        "parsed",
+        "insufficient_data",
+        "invalid_input",
+        "harmonized",
+        "phased",
+        "ancestry_inferred",
+        "annotated",
+        "scored",
+        "blocked"
+      ]
+    },
+    "QualitySummary": {
+      "type": "object",
+      "description": "Aggregate counts only. Contains NO allele values.",
+      "required": [
+        "total_records",
+        "parsed_records",
+        "autosomal_records",
+        "no_call_count",
+        "unsupported_indel_count",
+        "duplicate_exact_count",
+        "duplicate_conflicting_count",
+        "excluded_by_chromosome",
+        "error_count",
+        "sufficient_for_inference"
+      ],
+      "properties": {
+        "total_records": { "type": "integer", "minimum": 0 },
+        "parsed_records": { "type": "integer", "minimum": 0 },
+        "autosomal_records": { "type": "integer", "minimum": 0 },
+        "no_call_count": { "type": "integer", "minimum": 0 },
+        "unsupported_indel_count": { "type": "integer", "minimum": 0 },
+        "duplicate_exact_count": { "type": "integer", "minimum": 0 },
+        "duplicate_conflicting_count": { "type": "integer", "minimum": 0 },
+        "excluded_by_chromosome": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 },
+          "description": "Map of human-readable chromosome label (e.g. 'X', 'Y', 'XY/PAR', 'MT') to excluded record count."
+        },
+        "error_count": { "type": "integer", "minimum": 0 },
+        "sufficient_for_inference": {
+          "type": "boolean",
+          "description": "False when the file does not meet the minimum marker threshold for downstream phasing/ancestry/scoring. The four-row parser example must yield false."
+        }
+      }
+    },
+    "SourceMetadata": {
+      "type": "object",
+      "description": "Declarations read from AncestryDNA comment lines. Preserved in private processing metadata. Parsed, never guessed.",
+      "required": ["source_format", "declared_build", "strand"],
+      "properties": {
+        "source_format": { "type": "string", "examples": ["AncestryDNA-raw-text"] },
+        "array_version": { "type": ["string", "null"], "examples": ["V2.0"] },
+        "converter_version": { "type": ["string", "null"], "examples": ["V1.0"] },
+        "declared_build": { "type": "string", "examples": ["37.1"] },
+        "normalized_build": { "$ref": "#/$defs/GenomeBuild" },
+        "strand": { "type": "string", "examples": ["+"] },
+        "generated_at": { "type": ["string", "null"], "description": "Source-declared generation timestamp." },
+        "usage_notice": {
+          "type": "string",
+          "description": "Preserved genealogical-use / nonmedical-use notice from the source."
+        }
+      }
+    },
+    "Provenance": {
+      "type": "object",
+      "required": ["source_type", "accessed_at"],
+      "properties": {
+        "source_type": { "type": "string", "enum": ["ancestrydna_upload", "synthetic_demo", "precomputed"] },
+        "accessed_at": { "type": "string" },
+        "notes": { "type": "string" },
+        "source_url": { "type": ["string", "null"] }
+      }
+    },
+    "Sample": {
+      "type": "object",
+      "required": [
+        "sample_id",
+        "source_type",
+        "genome_build",
+        "synthetic",
+        "processing_status",
+        "quality_summary",
+        "provenance"
+      ],
+      "properties": {
+        "sample_id": { "type": "string" },
+        "source_type": { "type": "string", "enum": ["ancestrydna_upload", "synthetic_demo", "precomputed"] },
+        "genome_build": { "$ref": "#/$defs/GenomeBuild" },
+        "synthetic": { "type": "boolean" },
+        "processing_status": { "$ref": "#/$defs/ProcessingStatus" },
+        "quality_summary": { "$ref": "#/$defs/QualitySummary" },
+        "provenance": { "$ref": "#/$defs/Provenance" },
+        "source_metadata": { "$ref": "#/$defs/SourceMetadata" }
+      }
+    },
+    "ParsedRecord": {
+      "type": "object",
+      "description": "A preserved pre-harmonization record. allele1/allele2 are the raw observed alleles, NOT interpreted as parental copies or REF/ALT.",
+      "required": [
+        "rsid",
+        "chromosome_raw",
+        "chromosome_norm",
+        "position_1based",
+        "position_0based",
+        "allele1",
+        "allele2",
+        "record_kind"
+      ],
+      "properties": {
+        "rsid": { "type": "string" },
+        "chromosome_raw": { "type": "string", "description": "Original source chromosome code, e.g. '23'." },
+        "chromosome_norm": { "type": "string", "description": "Normalized label, e.g. '1' or 'X'." },
+        "position_1based": { "type": "integer", "minimum": 1 },
+        "position_0based": { "type": "integer", "minimum": 0 },
+        "allele1": { "type": "string" },
+        "allele2": { "type": "string" },
+        "record_kind": {
+          "type": "string",
+          "enum": ["snp", "no_call", "indel_unsupported", "duplicate_exact", "duplicate_conflicting", "non_autosomal"],
+          "description": "Classification assigned during parsing. Only 'snp' records on autosomes 1-22 enter the analysis path."
+        }
+      }
+    },
+    "ParseError": {
+      "type": "object",
+      "required": ["line_number", "code", "message"],
+      "properties": {
+        "line_number": { "type": "integer", "minimum": 1 },
+        "code": {
+          "type": "string",
+          "enum": [
+            "bad_column_count",
+            "bad_header",
+            "non_integer_position",
+            "non_positive_position",
+            "unexpected_allele_token",
+            "unsupported_indel",
+            "unknown_chromosome",
+            "empty_line"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable reason. MUST NOT contain allele values."
+        }
+      }
+    },
+    "ParseResult": {
+      "type": "object",
+      "required": ["records", "metadata", "quality_summary", "errors"],
+      "properties": {
+        "records": { "type": "array", "items": { "$ref": "#/$defs/ParsedRecord" } },
+        "metadata": { "$ref": "#/$defs/SourceMetadata" },
+        "quality_summary": { "$ref": "#/$defs/QualitySummary" },
+        "errors": { "type": "array", "items": { "$ref": "#/$defs/ParseError" } }
+      }
+    },
+    "VariantObservation": {
+      "type": "object",
+      "required": [
+        "variant_key",
+        "chromosome",
+        "position_0based",
+        "ref",
+        "alt",
+        "genotype",
+        "phased",
+        "measurement_status",
+        "quality_flags"
+      ],
+      "properties": {
+        "variant_key": { "type": "string", "description": "build:chrom:pos:ref:alt. An rsID alone is NOT a sufficient join key." },
+        "chromosome": { "type": "string" },
+        "position_0based": { "type": "integer", "minimum": 0 },
+        "ref": { "type": ["string", "null"] },
+        "alt": { "type": ["string", "null"] },
+        "rsid": { "type": ["string", "null"] },
+        "genotype": { "type": "string" },
+        "phased": { "type": "boolean" },
+        "phase_set": { "type": ["string", "null"] },
+        "measurement_status": { "$ref": "#/$defs/MeasurementStatus" },
+        "quality_flags": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "AncestrySegment": {
+      "type": "object",
+      "required": [
+        "sample_id",
+        "chromosome",
+        "start_0based",
+        "end_0based_exclusive",
+        "copy_index",
+        "ancestry_label",
+        "assignment_status",
+        "method",
+        "reference_panel",
+        "provenance"
+      ],
+      "properties": {
+        "sample_id": { "type": "string" },
+        "chromosome": { "type": "string" },
+        "start_0based": { "type": "integer", "minimum": 0 },
+        "end_0based_exclusive": { "type": "integer", "minimum": 1 },
+        "copy_index": { "type": "integer", "enum": [1, 2], "description": "copy 1 / copy 2 unless parental origin is supported." },
+        "ancestry_label": { "type": "string" },
+        "probabilities": { "type": ["object", "null"], "additionalProperties": { "type": "number" } },
+        "assignment_status": { "type": "string", "enum": ["assigned", "uncertain", "unknown"] },
+        "method": { "type": "string" },
+        "reference_panel": { "type": "string" },
+        "parental_origin": { "type": ["string", "null"] },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      }
+    },
+    "FrequencyAnnotation": {
+      "type": "object",
+      "required": [
+        "variant_key",
+        "dataset_version",
+        "ancestry_group",
+        "frequency_basis",
+        "source_url"
+      ],
+      "properties": {
+        "variant_key": { "type": "string" },
+        "dataset_version": { "type": "string" },
+        "ancestry_group": { "type": "string" },
+        "frequency_basis": { "type": "string", "enum": ["global_group", "local_ancestry"] },
+        "allele_count": { "type": ["integer", "null"] },
+        "allele_number": { "type": ["integer", "null"] },
+        "allele_frequency": {
+          "type": ["number", "null"],
+          "description": "May be null. NEVER substitute zero for missing data."
+        },
+        "filters": { "type": ["array", "null"], "items": { "type": "string" } },
+        "source_url": { "type": "string" }
+      }
+    },
+    "DiseaseEvidence": {
+      "type": "object",
+      "required": ["variant_key", "condition", "evidence_type", "source_url", "accessed_at", "limitations"],
+      "properties": {
+        "variant_key": { "type": "string" },
+        "condition": { "type": "string" },
+        "evidence_type": { "type": "string", "enum": ["clinvar", "gwas", "curated_score_weight"] },
+        "classification": { "type": ["string", "null"] },
+        "review_status": { "type": ["string", "null"] },
+        "conflicting": { "type": ["boolean", "null"] },
+        "inheritance": { "type": ["string", "null"] },
+        "effect_allele": { "type": ["string", "null"] },
+        "effect_size": { "type": ["number", "null"] },
+        "effect_metric": { "type": ["string", "null"] },
+        "study_population": { "type": ["string", "null"] },
+        "source_url": { "type": "string" },
+        "accessed_at": { "type": "string" },
+        "limitations": { "type": "string" }
+      }
+    },
+    "ScoreResult": {
+      "type": "object",
+      "required": [
+        "model_id",
+        "model_version",
+        "condition",
+        "raw_score",
+        "marker_coverage",
+        "missing_data_method",
+        "validation_populations",
+        "limitations",
+        "provenance"
+      ],
+      "properties": {
+        "model_id": { "type": "string" },
+        "model_version": { "type": "string" },
+        "condition": { "type": "string" },
+        "raw_score": { "type": ["number", "null"], "description": "Null when unscorable." },
+        "unscorable_reason": { "type": ["string", "null"] },
+        "marker_coverage": { "type": "number" },
+        "missing_data_method": { "type": "string" },
+        "reference_distribution": { "type": ["string", "null"] },
+        "percentile": { "type": ["number", "null"], "description": "Null without an appropriate comparison distribution." },
+        "absolute_risk": { "type": ["number", "null"], "description": "Null without a calibrated model and required clinical inputs." },
+        "validation_populations": { "type": "array", "items": { "type": "string" } },
+        "limitations": { "type": "string" },
+        "provenance": { "$ref": "#/$defs/Provenance" }
+      }
+    }
+  }
+}

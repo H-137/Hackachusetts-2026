@@ -1,0 +1,9 @@
+#AncestryDNA raw data download
+#Data was collected using AncestryDNA array version: V2.0
+#Columns use human reference build 37.1 coordinates on the forward (+) strand.
+rsid	chromosome	position	allele1	allele2
+rs1000001	1	300000	A	G
+rs1000001	1	300000	A	G
+rs1000002	1	300100	C	C
+rs1000002	1	300100	C	T
+rs1000003	1	300200	T	T
