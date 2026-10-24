@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { parseAncestryDna } from "./domain/parser";
 import { loadSyntheticDemo } from "./adapters/demo";
 import { loadAnalysisBundle } from "./adapters/analysisBundle";
@@ -10,8 +10,6 @@ import { QualityReport } from "./components/QualityReport";
 import { Explorer } from "./components/Explorer";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
-// ThreeJS/WebGL globe is heavy; load it only once a sample is being explored.
-const Globe = lazy(() => import("./components/Globe"));
 
 export type Role = "clinician" | "patient";
 
@@ -42,13 +40,10 @@ function buildUploadSample(parse: ParseResult): Sample {
 }
 
 export function App() {
+  const bundleInput = useRef<HTMLInputElement>(null);
+  const [bundleError, setBundleError] = useState<string | null>(null);
+  const [bundleBusy, setBundleBusy] = useState(false);
   const [view, setView] = useState<View>({ kind: "landing" });
-  // Reference regions to highlight on the background globe, driven by the
-  // explorer's current selection (lifted here so the fixed background globe can
-  // react to selections made deeper in the tree).
-  const [highlighted, setHighlighted] = useState<string[]>([]);
-  // The explorer's active tab, lifted so the globe only renders on Chromosomes.
-  const [explorerTab, setExplorerTab] = useState<string>("overview");
   // Clinician-first by default; a simplified patient view is the secondary layer.
   const [role, setRole] = useState<Role>("clinician");
 
@@ -70,48 +65,39 @@ export function App() {
   // file is read locally in the browser and never uploaded, stored, or
   // committed. This renders the user's actual ancestry segments and genotypes.
   const handleRealBundle = useCallback((file: File) => {
+    setBundleError(null);
+    setBundleBusy(true);
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const bundle = JSON.parse(String(reader.result)) as AnalysisBundle;
+        if (!bundle || typeof bundle !== "object" || !bundle.sample ||
+            typeof bundle.sample.sample_id !== "string" || !bundle.sample.quality_summary ||
+            !["segments", "variants", "frequencies", "evidence", "genes", "conditions", "scores"]
+              .every((key) => Array.isArray((bundle as unknown as Record<string, unknown>)[key]))) {
+          throw new Error("Invalid bundle structure");
+        }
         setView({ kind: "explorer", bundle });
       } catch {
-        // Invalid JSON: stay on landing. A full UI would surface an error.
+        setBundleError("Could not open this analysis bundle. Choose a valid real_bundle.json produced by the pipeline.");
+      } finally {
+        setBundleBusy(false);
       }
+    };
+    reader.onerror = () => {
+      setBundleBusy(false);
+      setBundleError("Could not read the file. Please try again.");
     };
     reader.readAsText(file);
   }, []);
 
   const reset = useCallback(() => {
-    setHighlighted([]);
-    setExplorerTab("overview");
+    setBundleError(null);
     setView({ kind: "landing" });
   }, []);
 
-  // The globe is a patient-facing visual; clinicians get clinical insights
-  // instead. Render the full-page background globe on the Chromosome tab in
-  // Patient mode (the two-window layout overlays it with translucent panels).
-  const showGlobeBg =
-    view.kind === "explorer" &&
-    explorerTab === "chromosomes" &&
-    role === "patient";
-
-  // Toggle a body class so CSS can make layout wrappers click-through while the
-  // background globe is present (so the open area passes events to the canvas).
-  useEffect(() => {
-    document.body.classList.toggle("has-globe-bg", showGlobeBg);
-    return () => document.body.classList.remove("has-globe-bg");
-  }, [showGlobeBg]);
-
-
-
   return (
     <>
-      {showGlobeBg && (
-        <Suspense fallback={null}>
-          <Globe highlighted={highlighted} fullpage />
-        </Suspense>
-      )}
       <main className="app">
       <div className="app-header">
         <div>
@@ -167,18 +153,21 @@ export function App() {
               visualize your actual local-ancestry segments and genotypes. Read
               locally in your browser; never uploaded or stored.
             </p>
-            <label className="file-button">
-              Open real_bundle.json
+            <button className="file-button" disabled={bundleBusy} onClick={() => bundleInput.current?.click()}>
+              {bundleBusy ? "Reading bundle…" : "Open real_bundle.json"}
+            </button>
               <input
+                ref={bundleInput}
                 type="file"
                 accept="application/json,.json"
                 hidden
                 onChange={(e) => {
                   const f = e.target.files?.[0];
+                  e.target.value = "";
                   if (f) handleRealBundle(f);
                 }}
               />
-            </label>
+            {bundleError && <p role="alert" className="badge bad">{bundleError}</p>}
           </div>
           <div className="card">
             <h3>Upload AncestryDNA text</h3>
@@ -219,8 +208,6 @@ export function App() {
               onPrintPdf={() => printReport(view.bundle)}
               role={role}
               onReset={reset}
-              onHighlightChange={setHighlighted}
-              onTabChange={setExplorerTab}
             />
           </ErrorBoundary>
         )}

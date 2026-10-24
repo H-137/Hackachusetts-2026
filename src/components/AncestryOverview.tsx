@@ -174,7 +174,7 @@ function AncestryOverviewClinician({
           sample {bundle.sample.sample_id} · build {bundle.sample.genome_build} ·{" "}
           {bundle.sample.quality_summary.autosomal_records.toLocaleString()}{" "}
           analysis-ready autosomal SNPs · processed chr{" "}
-          {summary.processed_chromosomes.join(", ") || "—"}
+          {[...summary.processed_chromosomes].sort((a, b) => Number(a) - Number(b)).join(", ") || "—"}
         </p>
       </div>
 

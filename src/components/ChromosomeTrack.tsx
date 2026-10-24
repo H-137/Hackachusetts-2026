@@ -1,3 +1,4 @@
+import { joinAdjacentSegments } from "../domain/segments";
 import { useMemo } from "react";
 import type { AnalysisBundle, SelectedRegion } from "../domain/explorer";
 import {
@@ -361,7 +362,7 @@ function buildRuler(start: number, end: number): number[] {
 // Vertical layout constants: position runs top -> bottom. Two copy columns sit
 // side by side; a gene/marker lane sits to their right; a bp ruler runs down
 // the left.
-const V_RULER_W = 46;
+const V_RULER_W = 68;
 const V_COPY_W = 44;
 const V_COPY_GAP = 12;
 const V_COPY1_X = V_RULER_W + 8;
@@ -371,7 +372,7 @@ const V_SVG_W = V_LANE_X + 96;
 const V_TOP = 22;
 // Shortened so the patient chromosome window lands at about the same height as
 // the region-info window beside it (was 410).
-const V_TRACK_H = 270;
+const V_TRACK_H = 400;
 const V_SVG_H = V_TOP + V_TRACK_H + 18;
 
 /**
@@ -401,7 +402,7 @@ function VerticalTrack({
 
   const segsByCopy = useMemo(() => {
     const result: Record<1 | 2, AncestrySegment[]> = { 1: [], 2: [] };
-    for (const s of bundle.segments) {
+    for (const s of joinAdjacentSegments(bundle.segments)) {
       if (s.chromosome !== chromosome) continue;
       if (s.end_0based_exclusive <= viewStart || s.start_0based >= viewEnd) continue;
       result[s.copy_index].push(s);
@@ -430,10 +431,6 @@ function VerticalTrack({
       ),
     [bundle.variants, chromosome, viewStart, viewEnd],
   );
-  const coverageMarkers = useMemo(
-    () => inWindow.filter((v) => isCoverageMarker(v)),
-    [inWindow],
-  );
   const variants = useMemo(
     () => inWindow.filter((v) => !isCoverageMarker(v)),
     [inWindow],
@@ -459,7 +456,7 @@ function VerticalTrack({
             y={y}
             width={V_COPY_W}
             height={h}
-            rx={3}
+            rx={0}
             fill={s.assignment_status === "unknown" ? "url(#hatchUnknown)" : region.color}
             fillOpacity={uncertain ? 0.55 : 0.92}
             stroke={isSel ? "#fff" : "none"}
@@ -478,12 +475,14 @@ function VerticalTrack({
               })
             }
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ")
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
                 onSelectRegion({
                   chromosome,
                   start_0based: s.start_0based,
                   end_0based_exclusive: s.end_0based_exclusive,
                 });
+              }
             }}
           >
             <title>
@@ -497,7 +496,7 @@ function VerticalTrack({
               y={y}
               width={V_COPY_W}
               height={h}
-              rx={3}
+              rx={0}
               fill="url(#hatchUncertain)"
               pointerEvents="none"
             />
@@ -547,18 +546,11 @@ function VerticalTrack({
         );
       })}
 
+      {/* Unassigned background remains visible wherever the run has gaps. */}
+      <rect x={V_COPY1_X} y={V_TOP} width={V_COPY_W} height={V_TRACK_H} fill="url(#hatchUnknown)" />
+      <rect x={V_COPY2_X} y={V_TOP} width={V_COPY_W} height={V_TRACK_H} fill="url(#hatchUnknown)" />
       {copyColumn(1, V_COPY1_X)}
       {copyColumn(2, V_COPY2_X)}
-
-      {/* Coverage markers: thin horizontal ticks on the lane. */}
-      {coverageMarkers.map((v) => {
-        const y = yOf(v.position_0based);
-        return (
-          <line key={v.variant_key} x1={V_LANE_X} y1={y} x2={V_LANE_X + 8} y2={y} stroke="#5e7488" strokeWidth={1}>
-            <title>assayed marker · coverage only</title>
-          </line>
-        );
-      })}
 
       {/* Genes: a labeled bracket at the gene's position. */}
       {genes.map((g) => {

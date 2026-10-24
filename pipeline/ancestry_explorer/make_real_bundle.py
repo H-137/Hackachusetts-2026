@@ -70,12 +70,27 @@ def _sample(processed_chroms: list[str], n_segments: int, n_observed: int) -> di
 
 
 def _variant_observations(prov_by_rsid: dict) -> list[dict]:
-    """Build VariantObservation records for curated loci, from real raw rows."""
-    out: list[dict] = []
+    """Build VariantObservation records for curated + watchlist loci.
+
+    Emits one observation per rsID that was resolved against the raw file,
+    covering BOTH the conditions.py curated panel AND the watchlist catalog, so
+    the UI watchlist's observed/unassayed status matches the real raw lookup
+    rather than defaulting to unassayed. Deduped by rsID; the clinical allele
+    and fallback coordinate come from whichever source defines the rsID.
+    """
+    # Build an rsid -> (clinical_allele, chromosome, position_1based) index from
+    # both sources (conditions.py first, then watchlist CATALOG for the rest).
+    meta: dict[str, tuple[str, str, int]] = {}
     for var in all_curated_variants():
-        rp = prov_by_rsid.get(var.rsid)
-        if rp is None:
-            continue
+        if var.rsid and var.rsid not in meta:
+            meta[var.rsid] = (var.clinical_allele, var.chromosome, var.position_1based)
+    for v in CATALOG:
+        if v.rsid and v.rsid not in meta:
+            meta[v.rsid] = ((v.alt or ""), v.chromosome, v.position_1based)
+
+    out: list[dict] = []
+    for rsid, rp in prov_by_rsid.items():
+        clinical_allele, fb_chrom, fb_pos = meta.get(rsid, ("", "", 0))
         status = rp["measurement_status"]
         # Map our status taxonomy onto the UI measurement_status enum.
         ui_status = {
@@ -84,16 +99,16 @@ def _variant_observations(prov_by_rsid: dict) -> list[dict]:
             "indel_uninterpretable": "not_assayed",
             "not_observed": "not_assayed",
         }.get(status, "not_assayed")
-        pos1 = rp.get("raw_position_1based") or var.position_1based
-        chrom = rp.get("raw_chromosome") or var.chromosome
+        pos1 = rp.get("raw_position_1based") or fb_pos
+        chrom = rp.get("raw_chromosome") or fb_chrom
         gt = rp.get("genotype") or "./."
         out.append({
-            "variant_key": f"GRCh37:{chrom}:{pos1}:{var.clinical_allele}",
+            "variant_key": f"GRCh37:{chrom}:{pos1}:{clinical_allele}",
             "chromosome": chrom,
-            "position_0based": pos1 - 1,
+            "position_0based": (pos1 - 1) if pos1 else 0,
             "ref": None,
             "alt": None,
-            "rsid": var.rsid,
+            "rsid": rsid,
             "genotype": gt,
             "phased": False,
             "phase_set": None,
@@ -230,6 +245,16 @@ def build_bundle(segments_paths: list[Path], raw_path: Path) -> dict:
         _V(v.rsid, v.chromosome, v.position_1based, v.clinical_allele, v.variant_type)
         for v in all_curated_variants() if v.rsid
     ]
+    # Also resolve the WATCHLIST catalog's rsIDs against the raw file, so the UI
+    # watchlist's observed/unassayed status is REAL (matched by rsid) rather than
+    # defaulting to "unassayed" for every catalog locus. catalog.py uses `alt` as
+    # the clinical allele and `variant_class` for the type.
+    seen = {v.rsid for v in cvars}
+    for v in CATALOG:
+        if v.rsid and v.rsid not in seen:
+            cvars.append(_V(v.rsid, v.chromosome, v.position_1based,
+                            (v.alt or ""), v.variant_class))
+            seen.add(v.rsid)
     prov = {k: val.as_dict() for k, val in lookup_raw_rows(raw_path, cvars).items()}
     variants = _variant_observations(prov)
 

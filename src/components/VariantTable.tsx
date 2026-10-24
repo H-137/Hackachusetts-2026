@@ -42,6 +42,7 @@ export function VariantTable({
   viewEnd,
   selected,
   onSelectVariant,
+  onSelectRegion,
 }: Props) {
   const rows = useMemo(() => {
     const inWindow = variantsIn(bundle.variants, chromosome, viewStart, viewEnd)
@@ -84,6 +85,11 @@ export function VariantTable({
     );
   }
 
+  const selectVariant = (v: VariantObservation) => {
+    onSelectRegion({ chromosome: v.chromosome, start_0based: v.position_0based, end_0based_exclusive: v.position_0based + 1 });
+    onSelectVariant(v);
+  };
+
   const isSelected = (v: VariantObservation) =>
     selected &&
     selected.chromosome === v.chromosome &&
@@ -113,11 +119,11 @@ export function VariantTable({
             key={v.variant_key}
             className={isSelected(v) ? "selected" : undefined}
             tabIndex={0}
-            onClick={() => onSelectVariant(v)}
+            onClick={() => selectVariant(v)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onSelectVariant(v);
+                selectVariant(v);
               }
             }}
           >

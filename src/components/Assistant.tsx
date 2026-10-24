@@ -56,6 +56,8 @@ export function Assistant({ bundle, activeTab }: Props) {
     try {
       const reply = await offlineAssistant.answer(q, ctx);
       setMessages((m) => [...m, reply]);
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", text: "I could not answer that question. Please try again." }]);
     } finally {
       setBusy(false);
     }

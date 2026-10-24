@@ -5,6 +5,8 @@ import { GLOBAL_REGIONS, regionFor } from "../domain/geography";
 interface Props {
   /** Reference-group codes to highlight (e.g. the regions overlapping a gene). */
   highlighted: string[];
+  populationLabels?: Record<string, string>;
+  focusedPopulation?: string | null;
   /** Diameter in px (ignored when fullpage). */
   size?: number;
   /**
@@ -51,8 +53,9 @@ interface RegionRing {
  * — visualization anchors, not a claim that a person or variant originates from
  * a single point (Section 2 terminology).
  */
-export function Globe({ highlighted, size = 300, zoom = 1, fullpage = false }: Props) {
+export function Globe({ highlighted, size = 300, zoom = 1, fullpage = false, populationLabels, focusedPopulation }: Props) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [ready, setReady] = useState(false);
   const highlightSet = useMemo(() => new Set(highlighted), [highlighted]);
 
@@ -72,12 +75,12 @@ export function Globe({ highlighted, size = 300, zoom = 1, fullpage = false }: P
   const canvasW = fullpage ? winSize.w : size;
   const canvasH = fullpage ? winSize.h : size;
 
-  // Closer altitude = more zoomed in. Clamp so it never clips into the globe.
+  // Leave room for the complete sphere and atmosphere even at maximum zoom.
   // A full-page canvas is much larger, so pull the camera back a touch so the
   // globe reads at a comparable on-screen size to the boxed version.
   const zoomAdjust = fullpage ? 1.9 : 1;
-  const baseAltitude = Math.max(0.6, (2.2 * zoomAdjust) / zoom);
-  const focusAltitude = Math.max(0.55, (1.8 * zoomAdjust) / zoom);
+  const baseAltitude = Math.max(2.1, (2.7 * zoomAdjust) / (zoom * zoomLevel));
+  const focusAltitude = Math.max(2.1, (2.6 * zoomAdjust) / (zoom * zoomLevel));
 
   const points = useMemo<RegionPoint[]>(
     () =>
@@ -104,21 +107,28 @@ export function Globe({ highlighted, size = 300, zoom = 1, fullpage = false }: P
     [points],
   );
 
-  const target = highlighted.find((h) => h !== "UNKNOWN");
+  const target = focusedPopulation ?? highlighted.find((h) => h !== "UNKNOWN");
+  const focusRegions = (focusedPopulation ? [focusedPopulation] : highlighted).map((code) => GLOBAL_REGIONS[code]).filter((r): r is NonNullable<typeof r> => !!r && r.code !== "UNKNOWN");
+  const centerLat = focusRegions.length ? focusRegions.reduce((sum, r) => sum + r.lat, 0) / focusRegions.length : 20;
+  const centerLng = Math.atan2(focusRegions.reduce((sum, r) => sum + Math.sin(r.lng * Math.PI / 180), 0), focusRegions.reduce((sum, r) => sum + Math.cos(r.lng * Math.PI / 180), 0)) * 180 / Math.PI;
 
-  // Auto-spin toggled by clicking the globe (one click pauses, next resumes).
-  const [spinning, setSpinning] = useState(true);
+  // Start still so selected reference groups remain easy to inspect.
+  const [spinning, setSpinning] = useState(false);
 
   // Configure controls once the globe instance exists. Rotate (drag to pan
-  // around the sphere) is enabled; zoom is not.
+  // around the sphere) and zoom are enabled.
   useEffect(() => {
     const g = globeRef.current;
     if (!g) return;
     const controls = g.controls();
-    controls.autoRotate = true;
+    controls.autoRotate = false;
     controls.autoRotateSpeed = 0.5;
     controls.enableRotate = true;
-    controls.enableZoom = false;
+    controls.enableZoom = true;
+    // Keep the sphere and atmosphere inside the square canvas, including
+    // when wheel/pinch zoom bypasses the toolbar's zoom state.
+    controls.minDistance = g.getGlobeRadius() * 3.1;
+    controls.maxDistance = 650;
     controls.enablePan = false;
     g.pointOfView({ lat: 20, lng: 0, altitude: baseAltitude }, 0);
     setReady(true);
@@ -141,14 +151,14 @@ export function Globe({ highlighted, size = 300, zoom = 1, fullpage = false }: P
       const region = GLOBAL_REGIONS[target];
       if (region) {
         g.pointOfView(
-          { lat: region.lat, lng: region.lng, altitude: focusAltitude },
+          { lat: centerLat, lng: centerLng, altitude: focusAltitude },
           1000,
         );
       }
     } else {
       g.pointOfView({ lat: 20, lng: 0, altitude: baseAltitude }, 800);
     }
-  }, [target, ready, focusAltitude, baseAltitude]);
+  }, [target, centerLat, centerLng, ready, focusAltitude, baseAltitude]);
 
   const globeEl = (
     <GlobeGL
@@ -166,7 +176,8 @@ export function Globe({ highlighted, size = 300, zoom = 1, fullpage = false }: P
         pointLat="lat"
         pointLng="lng"
         pointColor="color"
-        pointAltitude={(d) => ((d as RegionPoint).on ? 0.14 : 0.01)}
+        pointLabel="name"
+        pointAltitude={(d) => ((d as RegionPoint).on ? 0.025 : 0.005)}
         pointRadius={(d) => ((d as RegionPoint).on ? 0.85 : 0.3)}
         pointsMerge={false}
         pointResolution={12}
@@ -186,8 +197,8 @@ export function Globe({ highlighted, size = 300, zoom = 1, fullpage = false }: P
         labelsData={labels}
         labelLat="lat"
         labelLng="lng"
-        labelText="name"
-        labelSize={2.6}
+        labelText={(d) => populationLabels?.[(d as RegionPoint).code] ?? (d as RegionPoint).code}
+        labelSize={1.7}
         labelDotRadius={0.7}
         labelColor={() => "#ffffff"}
         labelResolution={3}
@@ -209,12 +220,17 @@ export function Globe({ highlighted, size = 300, zoom = 1, fullpage = false }: P
   }
 
   return (
-    <div className="globe-wrap" role="img" aria-label={ariaLabel}>
-      {globeEl}
-      <p className="subtitle globe-caption">
-        Drag to spin. Markers are reference-population anchors, not origin points
-        for any person or variant.
-      </p>
+    <div className="globe-wrap">
+      <div role="img" aria-label={ariaLabel}>{globeEl}</div>
+      <div className="globe-controls" aria-label="Globe controls">
+        <button className="secondary" onClick={() => setZoomLevel((z) => Math.min(1.25, z + 0.125))} disabled={zoomLevel >= 1.25} aria-label="Zoom in on globe">＋</button>
+        <button className="secondary" onClick={() => setZoomLevel((z) => Math.max(0.7, z - 0.2))} disabled={zoomLevel <= 0.7} aria-label="Zoom out on globe">−</button>
+        <button className="secondary" aria-pressed={spinning} onClick={() => setSpinning((s) => !s)}>{spinning ? "Pause rotation" : "Rotate globe"}</button>
+        <button className="secondary" onClick={() => {
+          setZoomLevel(1); setSpinning(false);
+          globeRef.current?.pointOfView({lat:20, lng:0, altitude:Math.max(2.1, 2.7 / zoom)}, 500);
+        }}>Reset view</button>
+      </div>
     </div>
   );
 }

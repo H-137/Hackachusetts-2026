@@ -32,13 +32,40 @@ def _variant(**kw):
 # --- catalog integrity ---
 
 def test_catalog_excludes_vus_and_benign():
-    # Accept the valid ClinVar P/LP aggregate forms; exclude VUS/benign/conflicting.
-    allowed = {"Pathogenic", "Likely pathogenic", "Pathogenic/Likely pathogenic"}
+    # Mendelian entries must be a valid ClinVar P/LP aggregate form. Risk alleles
+    # (evidence_class="risk_allele", e.g. APOL1/PNPLA3) are shown honestly as a
+    # risk factor / association and are NOT Mendelian P/LP. In all cases,
+    # VUS/benign/conflicting are excluded.
+    pathogenic = {"Pathogenic", "Likely pathogenic", "Pathogenic/Likely pathogenic"}
+    risk = {"risk factor", "association", "Affects"}
     forbidden_substrings = ("uncertain", "benign", "conflicting", "vus")
     for v in CATALOG:
-        assert v.clinical_classification in allowed
-        low = v.clinical_classification.lower()
-        assert not any(s in low for s in forbidden_substrings)
+        cls = v.clinical_classification
+        ec = getattr(v, "evidence_class", "mendelian_pathogenic")
+        if ec == "risk_allele":
+            assert cls in risk, f"{v.variant_id}: risk allele has unexpected class {cls!r}"
+        else:
+            assert cls in pathogenic, f"{v.variant_id}: non-P/LP Mendelian class {cls!r}"
+        assert not any(s in cls.lower() for s in forbidden_substrings)
+
+
+def test_risk_alleles_are_not_labeled_pathogenic():
+    # APOL1/PNPLA3 are documented population-enriched RISK alleles, never
+    # presented as Mendelian pathogenic. Guardrail: no fabricated pathogenicity.
+    risk = [v for v in CATALOG if getattr(v, "evidence_class", "") == "risk_allele"]
+    assert {v.gene for v in risk} >= {"APOL1", "PNPLA3"}
+    for v in risk:
+        assert "pathogenic" not in v.clinical_classification.lower()
+
+
+def test_enrichment_gate_tags_only_real_enrichment():
+    # The display gate tags a variant only when its documented AF clears the
+    # absolute floor; a pan-ethnic entry with no association stays untagged.
+    from ancestry_explorer.catalog import passes_enrichment_gate
+    by_id = {v.variant_id: v.as_dict() for v in CATALOG}
+    assert passes_enrichment_gate(by_id["CHEK2_c1100delC"]) is True
+    assert passes_enrichment_gate(by_id["APOL1_G1_rs73885319"]) is True
+    assert passes_enrichment_gate(by_id["ARSA_c907G_A"]) is False  # pan-ethnic, no tag
 
 
 def test_catalog_includes_unassayed_variants():

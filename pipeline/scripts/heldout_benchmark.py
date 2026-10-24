@@ -223,6 +223,17 @@ def main(argv: list[str] | None = None) -> int:
             "The AJ reference group has only 8 AADR individuals; per-pop accuracy "
             "for AJ is a bounded sanity check, NOT a validation of real Ashkenazi "
             "ancestry.",
+            "OPTIMISM WARNING for AJ: the 8 AJ individuals are array genotypes "
+            "IMPUTED from the 1000G reference, so their genotypes at analysis "
+            "sites share an imputation basis and can cluster artificially tightly. "
+            "A high AJ leave-one-out score here is therefore likely optimistic "
+            "and must NOT be read as evidence the model distinguishes real AJ "
+            "ancestry. Genuine validation needs non-imputed, held-out AJ WGS "
+            "(e.g. the access-controlled Ashkenazi Genome Consortium) and more "
+            "than one chromosome.",
+            "Few shared sites: the AADR Human Origins array overlaps the query "
+            "markers at only ~2k chr22 positions and the benchmark subset uses "
+            "even fewer; accuracy on so few sites is high-variance.",
             "Fine 1000G sub-populations within a super-population are known to be "
             "hard to separate on one chromosome; low per-pop accuracy for close "
             "sub-pops is expected and is reported honestly, not hidden.",

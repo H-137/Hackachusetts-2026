@@ -1,0 +1,160 @@
+{
+  "method": "leave-individual-out allele-frequency nearest-centroid on chr22 shared SNPs",
+  "chromosome": "22",
+  "region": "22:16000000-51000000",
+  "n_sites_used": 379,
+  "n_held_out": 162,
+  "per_pop_holdout": 6,
+  "top1_accuracy_fine_pop": 0.5802,
+  "top1_accuracy_superpop": 0.9877,
+  "per_pop_accuracy": {
+    "ACB": {
+      "correct": 1,
+      "total": 6,
+      "accuracy": 0.167
+    },
+    "AJ": {
+      "correct": 6,
+      "total": 6,
+      "accuracy": 1.0
+    },
+    "ASW": {
+      "correct": 2,
+      "total": 6,
+      "accuracy": 0.333
+    },
+    "BEB": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.667
+    },
+    "CDX": {
+      "correct": 3,
+      "total": 6,
+      "accuracy": 0.5
+    },
+    "CEU": {
+      "correct": 3,
+      "total": 6,
+      "accuracy": 0.5
+    },
+    "CHB": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.667
+    },
+    "CHS": {
+      "correct": 2,
+      "total": 6,
+      "accuracy": 0.333
+    },
+    "CLM": {
+      "correct": 5,
+      "total": 6,
+      "accuracy": 0.833
+    },
+    "ESN": {
+      "correct": 2,
+      "total": 6,
+      "accuracy": 0.333
+    },
+    "FIN": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.667
+    },
+    "GBR": {
+      "correct": 2,
+      "total": 6,
+      "accuracy": 0.333
+    },
+    "GIH": {
+      "correct": 3,
+      "total": 6,
+      "accuracy": 0.5
+    },
+    "GWD": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.667
+    },
+    "IBS": {
+      "correct": 2,
+      "total": 6,
+      "accuracy": 0.333
+    },
+    "ITU": {
+      "correct": 2,
+      "total": 6,
+      "accuracy": 0.333
+    },
+    "JPT": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.667
+    },
+    "KHV": {
+      "correct": 5,
+      "total": 6,
+      "accuracy": 0.833
+    },
+    "LWK": {
+      "correct": 5,
+      "total": 6,
+      "accuracy": 0.833
+    },
+    "MSL": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.667
+    },
+    "MXL": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.667
+    },
+    "PEL": {
+      "correct": 5,
+      "total": 6,
+      "accuracy": 0.833
+    },
+    "PJL": {
+      "correct": 3,
+      "total": 6,
+      "accuracy": 0.5
+    },
+    "PUR": {
+      "correct": 5,
+      "total": 6,
+      "accuracy": 0.833
+    },
+    "STU": {
+      "correct": 3,
+      "total": 6,
+      "accuracy": 0.5
+    },
+    "TSI": {
+      "correct": 3,
+      "total": 6,
+      "accuracy": 0.5
+    },
+    "YRI": {
+      "correct": 4,
+      "total": 6,
+      "accuracy": 0.667
+    }
+  },
+  "aj_confusion": {
+    "AJ": {
+      "AJ": 6
+    }
+  },
+  "caveats": [
+    "This is an allele-frequency nearest-centroid stand-in for the RFMix classification decision, not RFMix itself, and single-chromosome (chr22).",
+    "The AJ reference group has only 8 AADR individuals; per-pop accuracy for AJ is a bounded sanity check, NOT a validation of real Ashkenazi ancestry.",
+    "OPTIMISM WARNING for AJ: the 8 AJ individuals are array genotypes IMPUTED from the 1000G reference, so their genotypes at analysis sites share an imputation basis and can cluster artificially tightly. A high AJ leave-one-out score here is therefore likely optimistic and must NOT be read as evidence the model distinguishes real AJ ancestry. Genuine validation needs non-imputed, held-out AJ WGS (e.g. the access-controlled Ashkenazi Genome Consortium) and more than one chromosome.",
+    "Few shared sites: the AADR Human Origins array overlaps the query markers at only ~2k chr22 positions and the benchmark subset uses even fewer; accuracy on so few sites is high-variance.",
+    "Fine 1000G sub-populations within a super-population are known to be hard to separate on one chromosome; low per-pop accuracy for close sub-pops is expected and is reported honestly, not hidden.",
+    "Relatives: 1000G Phase 3 is a largely-unrelated panel; no additional related individuals were included in the held-out set."
+  ]
+}

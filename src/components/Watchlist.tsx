@@ -25,10 +25,10 @@ interface Props {
 }
 
 const CATEGORY_LABEL: Record<PriorityCategory, string> = {
-  observed_finding: "Observed finding",
-  ancestry_supported: "Ancestry supports attention",
-  review_status_strong: "Strong clinical evidence",
-  context_weak: "Weak local-ancestry relevance",
+  observed_finding: "Allele observed",
+  ancestry_supported: "Locus ancestry match",
+  review_status_strong: "Expert-reviewed evidence",
+  context_weak: "Catalog / weaker ancestry context",
   ancestry_unresolved: "Ancestry unresolved (no reference group)",
   ancestry_not_available: "Ancestry not available here",
 };
@@ -77,10 +77,6 @@ export function Watchlist({
     [bundle.segments, processed, observed, panelPops],
   );
 
-  if (role === "patient") {
-    return <PatientWatchlist entries={entries} />;
-  }
-
   const focusId = focusCondition
     ? entries.find((e) => e.variant.condition === focusCondition)?.variant.variant_id
     : undefined;
@@ -93,39 +89,48 @@ export function Watchlist({
     if (focusId) setSelected(focusId);
   }, [focusId]);
 
+  if (role === "patient") return <PatientWatchlist entries={entries} />;
+
   const active = entries.find((e) => e.variant.variant_id === selected) ?? null;
 
   return (
     <section aria-label="Ancestry-informed variant watchlist">
       <h2>Ancestry-informed watchlist</h2>
       <p className="subtitle">
-        Clinically important variants prioritized using local ancestry inferred
-        at each variant's own location, on both chromosome copies. Local ancestry
-        can suggest where to pay more attention; it cannot establish that a
-        variant is present or absent. Processed chromosomes:{" "}
-        {[...processed].sort().join(", ") || "none"}.
+        Curated variants, ranked by the evidence in this sample. An entry can be
+        listed for an observed allele, a local ancestry match, or catalog evidence alone.
+        Being listed does not mean the variant is present.
       </p>
+      <div className="watchlist-summary" aria-label="Watchlist evidence summary">
+        <span><strong>{entries.filter((e) => e.priority_category === "observed_finding").length}</strong> allele observed</span>
+        <span><strong>{entries.filter((e) => e.priority_category === "ancestry_supported").length}</strong> prioritized by locus ancestry</span>
+        <span><strong>{entries.filter((e) => !["observed_finding", "ancestry_supported"].includes(e.priority_category)).length}</strong> other catalog entries</span>
+      </div>
+      <details className="watchlist-scope">
+        <summary>Data coverage and ranking</summary>
+        <p>Processed chromosomes: {[...processed].sort((a, b) => Number(a) - Number(b)).join(", ") || "none"}.
+          {" "}Observed findings rank first, followed by locus ancestry matches, expert-reviewed
+          evidence, and entries with weaker or unavailable ancestry context. This is an evidence ranking, not a disease-risk score.</p>
+      </details>
 
       <div className="watchlist-layout">
-        <ul className="watchlist-list" role="listbox" aria-label="Variants">
+        <ul className="watchlist-list" aria-label="Catalog variants ranked by evidence">
           {entries.map((e) => (
             <li key={e.variant.variant_id}>
               <button
                 className={`watchlist-item${
                   selected === e.variant.variant_id ? " active" : ""
                 }`}
-                role="option"
-                aria-selected={selected === e.variant.variant_id}
+                aria-pressed={selected === e.variant.variant_id}
+                aria-controls="watchlist-selected-detail"
                 onClick={() => setSelected(e.variant.variant_id)}
               >
                 <span className={`badge ${CATEGORY_BADGE[e.priority_category]}`}>
                   {CATEGORY_LABEL[e.priority_category]}
                 </span>
-                <strong>{e.variant.gene}</strong> · {e.variant.condition}
-                <span className="subtitle">
-                  {" "}
-                  chr{e.variant.chromosome}:{toDisplayPosition(e.variant.position_1based - 1)}
-                </span>
+                <strong>{e.variant.gene} · {e.variant.rsid ?? e.variant.variant_id}</strong>
+                <span>{e.variant.condition}</span>
+                <span className="watchlist-item-note">{measurementLabel(e.measurement_status)}</span>
               </button>
             </li>
           ))}
@@ -175,112 +180,89 @@ function CopyBlock({
   );
 }
 
-function WatchlistDetail({
-  entry,
-  onOpenCondition,
-}: {
+const MEASUREMENT_LABELS: Record<string, string> = {
+  observed: "Genotype measured", imputed: "Genotype imputed",
+  unassayed: "Not assayed", not_assayed: "Not assayed",
+  indel_uninterpretable: "Indel not interpretable", no_call: "No genotype call",
+  excluded: "Excluded from analysis",
+};
+
+function measurementLabel(status: string): string {
+  return MEASUREMENT_LABELS[status] ?? status.replaceAll("_", " ");
+}
+
+function WatchlistDetail({ entry, onOpenCondition }: {
   entry: WatchlistEntry;
   onOpenCondition?: (condition: string) => void;
 }) {
   const v = entry.variant;
+  const observed = entry.priority_category === "observed_finding";
+  const ancestry = entry.priority_category === "ancestry_supported";
+  const matchingCopies = [entry.copy1, entry.copy2].filter(
+    (copy) => copy.available && copy.ancestry_label && v.associated_populations.includes(copy.ancestry_label),
+  );
   return (
-    <div className="watchlist-detail">
+    <section className="watchlist-detail" id="watchlist-selected-detail" aria-label={`Evidence for ${v.gene} ${v.rsid ?? v.variant_id}`}>
       <div className="watchlist-detail-head">
-        <h3>
-          {v.gene} — {v.condition}
-        </h3>
-        {onOpenCondition && (
-          <button
-            className="secondary"
-            onClick={() => onOpenCondition(v.condition)}
-          >
-            About this condition →
-          </button>
-        )}
+        <div><h3>{v.gene} · {v.condition}</h3>
+          <p className="watchlist-variant-id">{v.hgvs ?? v.variant_id}{v.rsid ? ` · ${v.rsid}` : ""}</p>
+        </div>
+        {onOpenCondition && <button className="secondary" onClick={() => onOpenCondition(v.condition)}>About this condition →</button>}
       </div>
-      <p className="subtitle">
-        {v.hgvs ?? v.variant_id} · {v.build} chr{v.chromosome}:
-        {toDisplayPosition(v.position_1based - 1).toLocaleString()} ·{" "}
-        {v.inheritance}
-      </p>
+      <p className="watchlist-item-note">{v.build} · chr{v.chromosome}:{v.position_1based.toLocaleString()} (1-based) · {v.inheritance}</p>
 
-      <h4>Clinical evidence</h4>
-      <p>
-        <span className="badge warn">{v.clinical_classification}</span>{" "}
-        {v.review_status}
-      </p>
-      <ul className="tight">
-        {v.citations.map((c) => (
-          <li key={c}>
-            <a href={c} target="_blank" rel="noreferrer">
-              {c}
-            </a>
-          </li>
-        ))}
-      </ul>
-
-      <h4>Documented population association</h4>
-      {v.associated_populations.length > 0 ? (
-        <p>
-          Associated populations: {v.associated_populations.join(", ")}
-          {v.founder_variant ? " (founder variant)" : ""}
-        </p>
-      ) : (
-        <p className="subtitle">No specific founder/population association documented.</p>
-      )}
-      <ul className="tight">
-        {v.frequency_evidence.map((f, i) => (
-          <li key={i}>
-            {f.population}:{" "}
-            {f.carrier_frequency !== null
-              ? `carrier freq ~${(f.carrier_frequency * 100).toFixed(1)}%`
-              : f.disease_prevalence ?? "frequency not quantified"}
-            {f.enrichment_note ? ` — ${f.enrichment_note}` : ""}
-          </li>
-        ))}
-      </ul>
-      <p className="subtitle">
-        Allele frequency, carrier frequency, and disease prevalence are distinct;
-        population frequency is not disease effect, penetrance, or personal risk.
-      </p>
-
-      <h4>Local ancestry at this locus</h4>
-      <div className="copy-grid">
-        <CopyBlock label="Chromosome copy 1" copy={entry.copy1} />
-        <CopyBlock label="Chromosome copy 2" copy={entry.copy2} />
+      <div className="watchlist-reason">
+        <span className={`badge ${CATEGORY_BADGE[entry.priority_category]}`}>{CATEGORY_LABEL[entry.priority_category]}</span>
+        <h4>Why this variant is on the watchlist</h4>
+        <p>{observed
+          ? "The sample contains the catalog's clinically relevant allele. This directly observed finding takes priority regardless of local ancestry."
+          : ancestry
+            ? `Local ancestry at this variant's position matches a documented associated population on ${matchingCopies.map((c) => `copy ${c.copy_index} (${regionDisplayName(c.ancestry_label as string)})`).join(" and ")}. That match raises its priority; it does not show that the allele is present.`
+            : entry.attention_rationale}</p>
+        <details><summary>Exact ranking reasons</summary><ul className="tight">{entry.priority_reasons.map((r, i) => <li key={i}>{r}</li>)}</ul></details>
       </div>
-      <p className="subtitle">{entry.compatibility.detail}</p>
 
-      <h4>Measurement</h4>
-      <p>
-        Status: <span className="badge">{entry.measurement_status}</span>
-        {entry.observed_genotype ? ` · observed genotype ${entry.observed_genotype}` : ""}
-      </p>
-      {entry.measurement_status === "unassayed" ||
-      entry.measurement_status === "indel_uninterpretable" ? (
-        <p className="subtitle">
-          Testing gap: this variant was not interpretable from the consumer array;
-          confirmatory testing would be required to assess it.
-        </p>
-      ) : null}
+      <h4>1. What this sample measured</h4>
+      <div className="watchlist-measurement">
+        <span className="badge">{measurementLabel(entry.measurement_status)}</span>
+        {["observed", "imputed"].includes(entry.measurement_status) && entry.observed_genotype && entry.observed_genotype !== "." && entry.observed_genotype !== "./." && <span>Genotype: <strong>{entry.observed_genotype}</strong></span>}
+        {v.clinical_allele && <span>Catalog clinical allele (+ strand): <strong>{v.clinical_allele}</strong></span>}
+      </div>
+      <p className="watchlist-item-note">{observed
+        ? "Confirm with clinical testing. The observed allele is not assigned to an ancestry copy because phase is not established."
+        : ["unassayed", "not_assayed", "indel_uninterpretable", "no_call", "excluded"].includes(entry.measurement_status)
+          ? "This sample does not establish whether this variant is present. The entry describes an evidence or coverage gap, not a positive finding."
+          : "A measured or imputed genotype alone is not an observed clinical finding. The ranking reason above explains why this entry remains visible."}</p>
 
-      <h4>Why this entry</h4>
-      <p>{entry.attention_rationale}</p>
-      <ul className="tight">
-        {entry.priority_reasons.map((r, i) => (
-          <li key={i}>{r}</li>
-        ))}
-      </ul>
+      <h4>2. Local ancestry used for this ranking</h4>
+      <p className="watchlist-item-note">Ancestry segments overlapping this exact variant position, rather than whole-genome ancestry.</p>
+      <div className="copy-grid"><CopyBlock label="Chromosome copy 1" copy={entry.copy1} /><CopyBlock label="Chromosome copy 2" copy={entry.copy2} /></div>
+      <p>{entry.compatibility.detail}</p>
+      {matchingCopies.some((c) => c.assignment_status !== "assigned") && <p className="badge warn">A matching segment is uncertain. Treat the ancestry match as tentative.</p>}
+      <p className="watchlist-item-note">Associated reference populations: {v.associated_populations.map((p) => `${regionDisplayName(p)} (${p})`).join(", ") || "No specific association documented"}{v.founder_variant ? " · documented founder variant" : ""}.</p>
+
+      <h4>3. Clinical evidence for this variant</h4>
+      <p><span className={`badge ${v.evidence_class === "risk_allele" ? "" : "warn"}`}>{v.clinical_classification}</span> · {v.review_status}</p>
+      {v.evidence_class === "risk_allele" && <p className="watchlist-item-note">This is a susceptibility / risk allele, rather than a Mendelian pathogenic variant.</p>}
+      <ul className="tight">{v.citations.map((url, i) => <li key={url}><a href={url} target="_blank" rel="noopener noreferrer">Clinical evidence source {i + 1}</a></li>)}</ul>
 
       <details className="methods">
-        <summary>Interpretation limits</summary>
-        <ul>
-          {entry.limitations.map((l, i) => (
-            <li key={i}>{l}</li>
-          ))}
-        </ul>
+        <summary>Population frequency evidence ({v.frequency_evidence.length} sources)</summary>
+        {v.frequency_evidence.length ? <ul className="watchlist-frequency">{v.frequency_evidence.map((f, i) => <li key={i}>
+          <strong>{f.population}</strong>
+          <ul className="tight">
+            <li>Allele frequency: {f.allele_frequency === null ? "not quantified" : `${(f.allele_frequency * 100).toLocaleString(undefined, { maximumSignificantDigits: 3 })}%`}</li>
+            <li>Carrier frequency: {f.carrier_frequency === null ? "not quantified" : `${(f.carrier_frequency * 100).toLocaleString(undefined, { maximumSignificantDigits: 3 })}%`}</li>
+            {f.disease_prevalence && <li>Disease prevalence: {f.disease_prevalence}</li>}
+            {f.sample_size_or_denominator && <li>Sample / denominator: {f.sample_size_or_denominator}</li>}
+          </ul>
+          {f.enrichment_note && <p>{f.enrichment_note}</p>}
+          <a href={f.source_url} target="_blank" rel="noopener noreferrer">Population evidence source {i + 1}</a>
+        </li>)}</ul> : <p>No quantitative population frequency evidence is provided.</p>}
+        <p className="watchlist-item-note">Allele frequency, carrier frequency, and disease prevalence describe different quantities. None is this patient's disease probability.</p>
       </details>
-    </div>
+      <details className="methods"><summary>Interpretation limits</summary><ul>{entry.limitations.map((l, i) => <li key={i}>{l}</li>)}</ul></details>
+    </section>
   );
 }
 

@@ -18,6 +18,7 @@ export function UploadScreen({ onParsed, onCancel }: Props) {
 
   const readFile = useCallback(
     (file: File) => {
+      if (busy) return;
       setBusy(true);
       setError(null);
       const reader = new FileReader();
@@ -32,7 +33,7 @@ export function UploadScreen({ onParsed, onCancel }: Props) {
       };
       reader.readAsText(file);
     },
-    [onParsed],
+    [onParsed, busy],
   );
 
   const onDrop = useCallback(
@@ -62,9 +63,13 @@ export function UploadScreen({ onParsed, onCancel }: Props) {
         onDrop={onDrop}
         role="button"
         tabIndex={0}
-        onClick={() => inputRef.current?.click()}
+        aria-disabled={busy}
+        onClick={() => !busy && inputRef.current?.click()}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            if (!busy) inputRef.current?.click();
+          }
         }}
       >
         {busy ? "Reading file…" : "Drop a .txt file here, or click to choose"}
@@ -75,6 +80,7 @@ export function UploadScreen({ onParsed, onCancel }: Props) {
           hidden
           onChange={(e) => {
             const file = e.target.files?.[0];
+            e.target.value = "";
             if (file) readFile(file);
           }}
         />

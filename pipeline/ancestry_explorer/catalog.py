@@ -62,6 +62,13 @@ class CatalogVariant:
     founder_variant: bool
     frequency_evidence: list[FrequencyEvidence]
     notes: str = ""
+    # Evidence class. "mendelian_pathogenic" (the default) is a P/LP Mendelian
+    # variant. "risk_allele" is a documented population-enriched SUSCEPTIBILITY/
+    # risk variant (e.g. APOL1, PNPLA3) that is NOT a Mendelian P/LP call: it is
+    # shown honestly as a risk allele with its real ClinVar status, never
+    # labeled "Pathogenic". Kept distinct so the clinical rules stay truthful
+    # while still demonstrating the population-association workflow.
+    evidence_class: str = "mendelian_pathogenic"
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -367,7 +374,144 @@ CATALOG: list[CatalogVariant] = [
         ],
         notes="In-window (17.67 Mb). Finnish enrichment; FIN is a 1000G reference pop.",
     ),
+    CatalogVariant(
+        variant_id="LZTR1_c1407G_A",
+        condition="Noonan syndrome 2 / schwannomatosis (LZTR1)",
+        gene="LZTR1",
+        inheritance="autosomal dominant / autosomal recessive (allele-dependent)",
+        source_build="GRCh37", chromosome="22", position_1based=21348266,
+        ref="G", alt="A",
+        hgvs="NM_006767.4(LZTR1):c.1407G>A (p.Trp469Ter)",
+        rsid="rs777243508", variant_class="snp",
+        clinical_classification="Pathogenic/Likely pathogenic",
+        review_status="criteria provided, multiple submitters, no conflicts",
+        classification_date="2026", clinvar_id="VCV000549753",
+        citations=["https://www.ncbi.nlm.nih.gov/clinvar/variation/549753/"],
+        associated_populations=["FIN"],  # FIN 0.14% top (gnomAD r2.1.1)
+        founder_variant=False,
+        frequency_evidence=[
+            FrequencyEvidence(
+                population="FIN", allele_frequency=0.00144, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 FIN AF 0.14%",
+                enrichment_note="Finnish-enriched nonsense variant; FIN is a 1000G reference pop.",
+                source_url="https://gnomad.broadinstitute.org/variant/22-21348266-G-A?dataset=gnomad_r2_1",
+            ),
+        ],
+        notes="In-window (21.35 Mb). Finnish enrichment. Completes the threshold-A P/LP set.",
+    ),
+    # -----------------------------------------------------------------------
+    # Risk alleles (evidence_class="risk_allele"). NOT Mendelian P/LP: shown
+    # honestly with their real ClinVar status (risk factor / association), never
+    # labeled "Pathogenic". These are the strongest chr22 POPULATION-ASSOCIATION
+    # demonstrators, which is why they matter even though they are not founder
+    # Mendelian variants. Frequencies are real gnomAD r2.1.1 values.
+    # -----------------------------------------------------------------------
+    CatalogVariant(
+        variant_id="APOL1_G1_rs73885319",
+        condition="APOL1-mediated kidney disease (risk; biallelic G1/G2)",
+        gene="APOL1",
+        inheritance="recessive-like risk (two risk alleles, G1/G2 in any combination)",
+        source_build="GRCh37", chromosome="22", position_1based=36661906,
+        ref="A", alt="G",  # G1 S342G; rs73885319 (in LD with rs60910145 I384M)
+        hgvs="NM_003661.4(APOL1):c.1024A>G (p.Ser342Gly); G1 allele",
+        rsid="rs73885319", variant_class="snp",
+        clinical_classification="risk factor",
+        review_status="criteria provided, multiple submitters, no conflicts",
+        classification_date="2024", clinvar_id="VCV000039024",
+        citations=["https://www.ncbi.nlm.nih.gov/clinvar/variation/39024/",
+                   "https://pubmed.ncbi.nlm.nih.gov/24233469/"],
+        associated_populations=["YRI", "ESN", "GWD", "MSL", "LWK", "ACB", "ASW"],  # AFR
+        founder_variant=True,
+        frequency_evidence=[
+            FrequencyEvidence(
+                population="AFR", allele_frequency=0.22, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 AFR AF 22.0%",
+                enrichment_note="African-ancestry-specific (~1696x vs other pops); trypanosome-resistance selection. Kidney-disease risk when biallelic with G1/G2.",
+                source_url="https://gnomad.broadinstitute.org/variant/22-36661906-A-G?dataset=gnomad_r2_1",
+            ),
+        ],
+        notes=(
+            "RISK ALLELE, not Mendelian P/LP. In-window (36.66 Mb). AFR-specific; "
+            "our chr22 panel has NO AFR label on this sample -> ancestry_unresolved "
+            "against our EUR panel (NOT mismatch/safe)."
+        ),
+        evidence_class="risk_allele",
+    ),
+    CatalogVariant(
+        variant_id="PNPLA3_I148M_rs738409",
+        condition="Steatotic liver disease (MASLD/NAFLD) susceptibility",
+        gene="PNPLA3",
+        inheritance="risk allele (dose-dependent susceptibility)",
+        source_build="GRCh37", chromosome="22", position_1based=44324727,
+        ref="C", alt="G",
+        hgvs="NM_025225.3(PNPLA3):c.444C>G (p.Ile148Met); I148M",
+        rsid="rs738409", variant_class="snp",
+        clinical_classification="risk factor",
+        review_status="criteria provided, multiple submitters, no conflicts",
+        classification_date="2024", clinvar_id="VCV000341932",
+        citations=["https://www.ncbi.nlm.nih.gov/clinvar/variation/341932/",
+                   "https://pubmed.ncbi.nlm.nih.gov/18820647/"],
+        associated_populations=["MXL", "PUR", "CLM", "PEL"],  # AMR-enriched
+        founder_variant=False,
+        frequency_evidence=[
+            FrequencyEvidence(
+                population="AMR", allele_frequency=0.502, carrier_frequency=None,
+                disease_prevalence=None,
+                sample_size_or_denominator="gnomAD r2.1.1 GRCh37 AMR AF 50.2%",
+                enrichment_note="Admixed-American/Hispanic-enriched (50% vs AFR 14%); strongest common determinant of hepatic fat. A susceptibility allele, not Mendelian.",
+                source_url="https://gnomad.broadinstitute.org/variant/22-44324727-C-G?dataset=gnomad_r2_1",
+            ),
+        ],
+        notes=(
+            "RISK ALLELE, not Mendelian P/LP. In-window (44.32 Mb). AMR-enriched; "
+            "this sample's locus here is EUR (TSI/GBR), so for this sample the AMR "
+            "association is unresolved/mismatch, shown honestly."
+        ),
+        evidence_class="risk_allele",
+    ),
 ]
+
+
+# ---------------------------------------------------------------------------
+# Enrichment display gate (threshold A). A documented population association is
+# treated as attention-raising ONLY when the variant's allele frequency in the
+# associated population is BOTH meaningfully elevated versus other populations
+# (>= MIN_ENRICHMENT_RATIO) AND above an absolute floor (>= MIN_ENRICHED_AF), so
+# a large ratio over vanishingly rare numbers does not raise attention. Below
+# the gate the variant still appears on clinical-evidence grounds but carries NO
+# ancestry tag. Recessive carrier frequencies run higher, so a slightly lower
+# floor is allowed for recessive conditions.
+# ---------------------------------------------------------------------------
+MIN_ENRICHMENT_RATIO = 2.0
+MIN_ENRICHED_AF = 0.001            # 0.1% default (dominant / risk)
+MIN_ENRICHED_AF_RECESSIVE = 0.0005  # 0.05% for recessive (carrier-relevant)
+
+
+def enrichment_floor_for(inheritance: str) -> float:
+    return (MIN_ENRICHED_AF_RECESSIVE
+            if "recessive" in (inheritance or "").lower()
+            else MIN_ENRICHED_AF)
+
+
+def passes_enrichment_gate(variant: dict) -> bool:
+    """True if the variant's best documented population frequency clears gate A.
+
+    Uses the max allele_frequency across frequency_evidence as the enriched-pop
+    AF. The ratio test is satisfied implicitly for the curated catalog (entries
+    were mined to >=2x); here we enforce the ABSOLUTE floor, which is the part
+    that filters weak signals at runtime. A variant with no quantified AF (only
+    carrier frequency or prevalence) is treated as NOT clearing the floor, so it
+    shows without an ancestry tag rather than overclaiming.
+    """
+    floor = enrichment_floor_for(variant.get("inheritance", ""))
+    best = 0.0
+    for fe in variant.get("frequency_evidence", []) or []:
+        af = fe.get("allele_frequency")
+        if af is not None and af > best:
+            best = af
+    return best >= floor
 
 
 def catalog() -> list[dict]:

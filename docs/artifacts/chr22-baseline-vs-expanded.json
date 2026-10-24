@@ -1,0 +1,186 @@
+{
+  "chromosome": "22",
+  "runs": {
+    "baseline_26pop": {
+      "usable_markers": 10192,
+      "windows": 12,
+      "mean_snps_per_window": 849.3,
+      "analyzed_span_bp": 68687476,
+      "runtime_seconds": null,
+      "superpop_pct": {
+        "EUR": 97.5,
+        "AMR": 2.5
+      }
+    },
+    "expanded_27pop_v2": {
+      "usable_markers": 10192,
+      "windows": 18,
+      "mean_snps_per_window": 566.2,
+      "analyzed_span_bp": 68687488,
+      "runtime_seconds": 738.0,
+      "superpop_pct": {
+        "EUR": 94.2,
+        "SAS": 3.0,
+        "AMR": 2.8
+      }
+    }
+  },
+  "assignment_stability": {
+    "compared_bp": 68687524,
+    "agreeing_bp": 54694083,
+    "agreement_fraction": 0.7962739055785444,
+    "changed_fraction": 0.20372609442145562
+  },
+  "caveats": [
+    "Stability is not accuracy: two runs can agree and both be wrong.",
+    "Higher marginal probabilities do not demonstrate correctness.",
+    "Per-chromosome composition, not whole-genome ancestry.",
+    "Sub-continental labels are experimental inferred similarity to reference populations."
+  ],
+  "per_label_span_shift_bp": {
+    "CEU": {
+      "baseline_bp": 16587487,
+      "expanded_bp": 14952177,
+      "delta_bp": -1635310
+    },
+    "GBR": {
+      "baseline_bp": 15080501,
+      "expanded_bp": 16045401,
+      "delta_bp": 964900
+    },
+    "IBS": {
+      "baseline_bp": 16675368,
+      "expanded_bp": 14355908,
+      "delta_bp": -2319460
+    },
+    "PEL": {
+      "baseline_bp": 1712531,
+      "expanded_bp": 0,
+      "delta_bp": -1712531
+    },
+    "PJL": {
+      "baseline_bp": 0,
+      "expanded_bp": 2032189,
+      "delta_bp": 2032189
+    },
+    "PUR": {
+      "baseline_bp": 0,
+      "expanded_bp": 1951010,
+      "delta_bp": 1951010
+    },
+    "TSI": {
+      "baseline_bp": 18631589,
+      "expanded_bp": 19350803,
+      "delta_bp": 719214
+    }
+  },
+  "pel_block_35p53_37p24Mb": {
+    "region_1based": {
+      "start": 35531757,
+      "end": 37244287
+    },
+    "baseline": {
+      "copy1": [
+        {
+          "label": "IBS",
+          "start": 35531756,
+          "end": 35531757,
+          "span_bp": 1,
+          "status": "assigned"
+        },
+        {
+          "label": "PEL",
+          "start": 35531756,
+          "end": 37244287,
+          "span_bp": 1712531,
+          "status": "assigned"
+        },
+        {
+          "label": "CEU",
+          "start": 37244286,
+          "end": 37244287,
+          "span_bp": 1,
+          "status": "assigned"
+        }
+      ],
+      "copy2": [
+        {
+          "label": "IBS",
+          "start": 35531756,
+          "end": 35531757,
+          "span_bp": 1,
+          "status": "assigned"
+        },
+        {
+          "label": "IBS",
+          "start": 35531756,
+          "end": 37244287,
+          "span_bp": 1712531,
+          "status": "assigned"
+        },
+        {
+          "label": "IBS",
+          "start": 37244286,
+          "end": 37244287,
+          "span_bp": 1,
+          "status": "assigned"
+        }
+      ]
+    },
+    "expanded": {
+      "copy1": [
+        {
+          "label": "GBR",
+          "start": 35531756,
+          "end": 35846168,
+          "span_bp": 314412,
+          "status": "assigned"
+        },
+        {
+          "label": "GBR",
+          "start": 35846167,
+          "end": 36635967,
+          "span_bp": 789800,
+          "status": "assigned"
+        },
+        {
+          "label": "GBR",
+          "start": 36635966,
+          "end": 37244287,
+          "span_bp": 608321,
+          "status": "assigned"
+        }
+      ],
+      "copy2": [
+        {
+          "label": "PUR",
+          "start": 35531756,
+          "end": 35846168,
+          "span_bp": 314412,
+          "status": "assigned"
+        },
+        {
+          "label": "PJL",
+          "start": 35846167,
+          "end": 36635967,
+          "span_bp": 789800,
+          "status": "assigned"
+        },
+        {
+          "label": "IBS",
+          "start": 36635966,
+          "end": 37244287,
+          "span_bp": 608321,
+          "status": "assigned"
+        }
+      ]
+    }
+  },
+  "new_label_assignment": {
+    "label": "AJ",
+    "total_span_bp": 0,
+    "segments": [],
+    "note": "AJ is a REAL Ashkenazi Jewish reference group (8 AADR Human Origins individuals) the baseline 26-pop panel cannot emit. Where the expanded panel assigns AJ is shown; with only 8 reference individuals on a single chromosome, this placement is experimental and NOT a validated ancestry result."
+  },
+  "accuracy_statement": "ACCURACY IS UNVALIDATED for real ancestry. The only quantitative check run is the bounded held-out population-classification benchmark in scripts/heldout_benchmark.py; see its artifact for the number. More populations, finer segments, and stable/higher marginals do NOT by themselves establish correctness."
+}

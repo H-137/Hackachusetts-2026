@@ -4,9 +4,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buildWatchlist,
+  passesEnrichmentGate,
   type CatalogVariant,
   type ObservedProvenance,
 } from "../src/domain/watchlist";
+import { WATCHLIST_CATALOG } from "../src/domain/watchlistCatalog";
 import type { AncestrySegment } from "../src/domain/types";
 
 function seg(
@@ -157,5 +159,51 @@ describe("buildWatchlist", () => {
     };
     const wl = buildWatchlist([v], [], new Set(["22"]), prov);
     expect(wl[0]!.relevance).toBe("not_relevant");
+  });
+});
+
+describe("chr22 catalog expansion", () => {
+  it("includes the threshold-A chr22 set plus risk alleles", () => {
+    const ids = new Set(WATCHLIST_CATALOG.map((v) => v.variant_id));
+    for (const id of [
+      "CHEK2_c1100delC", "UPB1_c917minus1GA", "SCO2_c16_17ins",
+      "ADA2_c973minus2AG", "LZTR1_c1407G_A", "ARSA_c542T_G",
+      "APOL1_G1_rs73885319", "PNPLA3_I148M_rs738409",
+    ]) {
+      expect(ids.has(id)).toBe(true);
+    }
+  });
+
+  it("every chr22 catalog variant falls in the real ancestry window", () => {
+    for (const v of WATCHLIST_CATALOG.filter((v) => v.chromosome === "22")) {
+      expect(v.position_1based).toBeGreaterThanOrEqual(16_000_000);
+      expect(v.position_1based).toBeLessThanOrEqual(51_300_000);
+    }
+  });
+
+  it("risk alleles are flagged as risk_allele and never pathogenic", () => {
+    const risk = WATCHLIST_CATALOG.filter((v) => v.evidence_class === "risk_allele");
+    expect(risk.map((v) => v.gene).sort()).toEqual(["APOL1", "PNPLA3"]);
+    for (const v of risk) {
+      expect(v.clinical_classification.toLowerCase()).not.toContain("pathogenic");
+    }
+  });
+
+  it("enrichment gate tags real enrichment but not a pan-ethnic entry", () => {
+    const byId = Object.fromEntries(WATCHLIST_CATALOG.map((v) => [v.variant_id, v]));
+    expect(passesEnrichmentGate(byId["CHEK2_c1100delC"]!)).toBe(true);
+    expect(passesEnrichmentGate(byId["APOL1_G1_rs73885319"]!)).toBe(true);
+    expect(passesEnrichmentGate(byId["ARSA_c907G_A"]!)).toBe(false);
+  });
+});
+
+describe("ARSA locus explanation", () => {
+  it("prioritizes the population-associated ARSA variant for GBR/IBS ancestry at the locus", () => {
+    const segments = [seg(1, "22", 51000000, 51304566, "GBR"), seg(2, "22", 51000000, 51304566, "IBS")];
+    const entries = buildWatchlist(WATCHLIST_CATALOG.filter((v) => v.gene === "ARSA"), segments, new Set(["22"]));
+    const match = entries.find((e) => e.variant.rsid === "rs74315457");
+    expect(match?.priority_category).toBe("ancestry_supported");
+    expect(match?.observed_genotype).toBeNull();
+    expect(entries.find((e) => e.variant.variant_id === "ARSA_c907G_A")?.priority_category).not.toBe("ancestry_supported");
   });
 });

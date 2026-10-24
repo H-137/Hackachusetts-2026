@@ -14,7 +14,7 @@ import { Assistant } from "./Assistant";
 import { ChromosomePairMenu } from "./ChromosomePairMenu";
 import { ChromosomeTrack } from "./ChromosomeTrack";
 import { ConditionPage, useConditionGroups } from "./ConditionPage";
-import { PatientRegionInfo } from "./PatientRegionInfo";
+import { PatientChromosomeView } from "./PatientChromosomeView";
 import { RegionClinicalPanel } from "./RegionClinicalPanel";
 import { VariantDetail } from "./VariantDetail";
 import { VariantTable } from "./VariantTable";
@@ -24,10 +24,6 @@ interface Props {
   bundle: AnalysisBundle;
   role: Role;
   onReset: () => void;
-  /** Report the reference regions to highlight on the background globe. */
-  onHighlightChange: (highlighted: string[]) => void;
-  /** Report the active tab so the globe can render only on Chromosomes. */
-  onTabChange: (tab: string) => void;
   /** Download the styled HTML report. */
   onDownloadHtml: () => void;
   /** Open the printable report (save as PDF). */
@@ -46,8 +42,6 @@ export function Explorer({
   bundle,
   role,
   onReset,
-  onHighlightChange,
-  onTabChange,
   onDownloadHtml,
   onPrintPdf,
 }: Props) {
@@ -95,6 +89,7 @@ export function Explorer({
   };
 
   const openCondition = (c: string) => {
+    setVariant(null);
     setCondition(c);
     setTab("conditions");
   };
@@ -122,17 +117,6 @@ export function Explorer({
 
   // Watchlist conditions drive the Conditions tab (companion views, one source).
   const conditionGroups = useConditionGroups(bundle);
-
-  // Drive the background globe: highlight the selection's regions only while the
-  // chromosomes tab is active; clear it elsewhere so the globe idles.
-  useEffect(() => {
-    onHighlightChange(tab === "chromosomes" ? highlighted : []);
-  }, [tab, highlighted, onHighlightChange]);
-
-  // Report the active tab so the globe renders only on the Chromosomes tab.
-  useEffect(() => {
-    onTabChange(tab);
-  }, [tab, onTabChange]);
 
   return (
     <div className="explorer">
@@ -235,7 +219,7 @@ export function Explorer({
             {role === "patient" ? (
               <span className="subtitle">
                 Pick a chromosome, then click a region to see what it means.
-                Drag the globe to rotate; click to pause or resume its spin.
+                Use the segment key to explore the same colors on the globe.
               </span>
             ) : activeRegionNames.length > 0 ? (
               <>
@@ -271,7 +255,7 @@ export function Explorer({
             )}
             </div>
 
-            <div className="view-toggle" role="radiogroup" aria-label="View">
+            {role === "clinician" && <div className="view-toggle" role="radiogroup" aria-label="View">
               <button
                 role="radio"
                 aria-checked={chromView === "chart"}
@@ -288,63 +272,11 @@ export function Explorer({
               >
                 Table
               </button>
-            </div>
+            </div>}
           </div>
 
           {role === "patient" ? (
-            /* Patient: two thin windows (small chromosome | region info) side by
-               side, then an open column where the background globe shows
-               through — same as the old single-window-next-to-globe layout, but
-               the single window is split into two. */
-            <div className="chrom-stage patient-stage">
-              <div className="viewer-panel compact">
-                <div className="viewer-head">
-                  <ChromosomePairMenu value={chrom} onChange={changeChrom} />
-                </div>
-                <div className="viewer-body">
-                  {chromView === "chart" ? (
-                    <>
-                      <div className="track-scroll">
-                        <ChromosomeTrack
-                          bundle={bundle}
-                          chromosome={chrom}
-                          viewStart={view.start}
-                          viewEnd={view.end}
-                          selected={region}
-                          orientation="vertical"
-                          onSelectRegion={onSelectRegion}
-                          onSelectVariant={onSelectVariant}
-                        />
-                      </div>
-                      <div className="legend small">
-                        <span>
-                          <span className="seg-dot" style={{ background: "#4b9fe1" }} />{" "}
-                          gene
-                        </span>
-                        <span>hatched = uncertain</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="table-scroll">
-                      <VariantTable
-                        bundle={bundle}
-                        chromosome={chrom}
-                        viewStart={view.start}
-                        viewEnd={view.end}
-                        selected={region}
-                        onSelectVariant={onSelectVariant}
-                        onSelectRegion={onSelectRegion}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <PatientRegionInfo bundle={bundle} region={region} />
-
-              {/* Open column: the full-page background globe shows through. */}
-              <div className="globe-stage" aria-hidden="true" />
-            </div>
+            <PatientChromosomeView bundle={bundle} chromosome={chrom} region={region} onChangeChromosome={changeChrom} onSelectRegion={onSelectRegion} onSelectVariant={onSelectVariant} />
           ) : (
             /* Clinician: stacked viewer + lollipop/region clinical panel. */
             <div className="chrom-stage clinician">

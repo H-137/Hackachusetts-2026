@@ -51,6 +51,13 @@ export interface CatalogVariant {
   founder_variant: boolean;
   frequency_evidence: FrequencyEvidence[];
   notes: string;
+  /**
+   * "mendelian_pathogenic" (default) = a P/LP Mendelian variant.
+   * "risk_allele" = a documented population-enriched susceptibility/risk variant
+   * (e.g. APOL1, PNPLA3) shown honestly with its real ClinVar status, NEVER
+   * labeled pathogenic. Kept distinct so clinical rules stay truthful.
+   */
+  evidence_class?: "mendelian_pathogenic" | "risk_allele";
 }
 
 export interface CopyAncestry {
@@ -90,6 +97,30 @@ export type PriorityCategory =
  *    genotype). Kept for the coverage view, excluded from primary insights.
  */
 export type Relevance = "observed_finding" | "ancestry_relevant" | "not_relevant";
+
+/**
+ * Enrichment display gate (threshold A), mirrors catalog.py. A documented
+ * population association raises attention only when the enriched-population
+ * allele frequency clears an absolute floor (0.1% default, 0.05% recessive).
+ * The ratio part (>=2x) was enforced at catalog-mining time; this is the
+ * runtime absolute-floor check. A variant below the floor still shows on
+ * clinical-evidence grounds but without an ancestry tag.
+ */
+export const MIN_ENRICHED_AF = 0.001;
+export const MIN_ENRICHED_AF_RECESSIVE = 0.0005;
+
+export function passesEnrichmentGate(v: CatalogVariant): boolean {
+  const floor = /recessive/i.test(v.inheritance)
+    ? MIN_ENRICHED_AF_RECESSIVE
+    : MIN_ENRICHED_AF;
+  let best = 0;
+  for (const fe of v.frequency_evidence ?? []) {
+    if (fe.allele_frequency !== null && fe.allele_frequency > best) {
+      best = fe.allele_frequency;
+    }
+  }
+  return best >= floor;
+}
 
 export interface WatchlistEntry {
   variant: CatalogVariant;

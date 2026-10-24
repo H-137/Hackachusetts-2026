@@ -319,6 +319,111 @@ export const WATCHLIST_CATALOG: CatalogVariant[] = [
     ],
     notes: "In-window (17.67 Mb). Finnish enrichment; FIN is a 1000G reference pop.",
   },
+  {
+    variant_id: "LZTR1_c1407G_A",
+    condition: "Noonan syndrome 2 / schwannomatosis (LZTR1)",
+    gene: "LZTR1",
+    inheritance: "autosomal dominant / autosomal recessive (allele-dependent)",
+    build: "GRCh37",
+    chromosome: "22",
+    position_1based: 21348266,
+    hgvs: "NM_006767.4(LZTR1):c.1407G>A (p.Trp469Ter)",
+    rsid: "rs777243508",
+    variant_class: "snp",
+    clinical_allele: "A",
+    clinical_classification: "Pathogenic/Likely pathogenic",
+    review_status: "criteria provided, multiple submitters, no conflicts",
+    citations: ["https://www.ncbi.nlm.nih.gov/clinvar/variation/549753/"],
+    associated_populations: ["FIN"],
+    founder_variant: false,
+    frequency_evidence: [
+      {
+        population: "FIN",
+        allele_frequency: 0.00144,
+        carrier_frequency: null,
+        disease_prevalence: null,
+        sample_size_or_denominator: "gnomAD r2.1.1 GRCh37 FIN AF 0.14%",
+        enrichment_note: "Finnish-enriched nonsense variant; FIN is a 1000G reference pop.",
+        source_url: "https://gnomad.broadinstitute.org/variant/22-21348266-G-A?dataset=gnomad_r2_1",
+      },
+    ],
+    notes: "In-window (21.35 Mb). Finnish enrichment. Completes the threshold-A P/LP set.",
+  },
+  // --- Risk alleles (evidence_class "risk_allele"). NOT Mendelian P/LP: shown
+  //     honestly with their real ClinVar status, never labeled pathogenic. The
+  //     strongest chr22 population-association demonstrators. ---
+  {
+    variant_id: "APOL1_G1_rs73885319",
+    condition: "APOL1-mediated kidney disease (risk; biallelic G1/G2)",
+    gene: "APOL1",
+    inheritance: "recessive-like risk (two risk alleles, G1/G2 in any combination)",
+    build: "GRCh37",
+    chromosome: "22",
+    position_1based: 36661906,
+    hgvs: "NM_003661.4(APOL1):c.1024A>G (p.Ser342Gly); G1 allele",
+    rsid: "rs73885319",
+    variant_class: "snp",
+    clinical_allele: "G",
+    clinical_classification: "risk factor",
+    review_status: "criteria provided, multiple submitters, no conflicts",
+    citations: [
+      "https://www.ncbi.nlm.nih.gov/clinvar/variation/39024/",
+      "https://pubmed.ncbi.nlm.nih.gov/24233469/",
+    ],
+    associated_populations: ["YRI", "ESN", "GWD", "MSL", "LWK", "ACB", "ASW"],
+    founder_variant: true,
+    frequency_evidence: [
+      {
+        population: "AFR",
+        allele_frequency: 0.22,
+        carrier_frequency: null,
+        disease_prevalence: null,
+        sample_size_or_denominator: "gnomAD r2.1.1 GRCh37 AFR AF 22.0%",
+        enrichment_note:
+          "African-ancestry-specific (~1696x vs other pops); trypanosome-resistance selection. Kidney-disease risk when biallelic with G1/G2.",
+        source_url: "https://gnomad.broadinstitute.org/variant/22-36661906-A-G?dataset=gnomad_r2_1",
+      },
+    ],
+    notes:
+      "RISK ALLELE, not Mendelian P/LP. In-window (36.66 Mb). AFR-specific; our chr22 panel has NO AFR label on this sample -> ancestry_unresolved against our EUR panel (NOT mismatch/safe).",
+    evidence_class: "risk_allele",
+  },
+  {
+    variant_id: "PNPLA3_I148M_rs738409",
+    condition: "Steatotic liver disease (MASLD/NAFLD) susceptibility",
+    gene: "PNPLA3",
+    inheritance: "risk allele (dose-dependent susceptibility)",
+    build: "GRCh37",
+    chromosome: "22",
+    position_1based: 44324727,
+    hgvs: "NM_025225.3(PNPLA3):c.444C>G (p.Ile148Met); I148M",
+    rsid: "rs738409",
+    variant_class: "snp",
+    clinical_allele: "G",
+    clinical_classification: "risk factor",
+    review_status: "criteria provided, multiple submitters, no conflicts",
+    citations: [
+      "https://www.ncbi.nlm.nih.gov/clinvar/variation/341932/",
+      "https://pubmed.ncbi.nlm.nih.gov/18820647/",
+    ],
+    associated_populations: ["MXL", "PUR", "CLM", "PEL"],
+    founder_variant: false,
+    frequency_evidence: [
+      {
+        population: "AMR",
+        allele_frequency: 0.502,
+        carrier_frequency: null,
+        disease_prevalence: null,
+        sample_size_or_denominator: "gnomAD r2.1.1 GRCh37 AMR AF 50.2%",
+        enrichment_note:
+          "Admixed-American/Hispanic-enriched (50% vs AFR 14%); strongest common determinant of hepatic fat. A susceptibility allele, not Mendelian.",
+        source_url: "https://gnomad.broadinstitute.org/variant/22-44324727-C-G?dataset=gnomad_r2_1",
+      },
+    ],
+    notes:
+      "RISK ALLELE, not Mendelian P/LP. In-window (44.32 Mb). AMR-enriched; this sample's locus here is EUR (TSI/GBR), so for this sample the AMR association is unresolved/mismatch, shown honestly.",
+    evidence_class: "risk_allele",
+  },
 ];
 
 /** Chromosomes for which the current bundle has local ancestry segments. */
