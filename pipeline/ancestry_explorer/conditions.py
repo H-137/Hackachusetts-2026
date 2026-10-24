@@ -37,7 +37,10 @@ class CuratedVariant:
     # this is the biological effect allele, not a REF/ALT assertion.
     clinical_allele: str
     variant_type: str  # "snp" | "indel"
-    array_typable: bool  # SNP arrays can type this directly as a SNP
+    # Expected GRCh37 (build 37.1) coordinate per the cited source, used to
+    # CROSS-CHECK against the actual raw-data row (never to assume a value). The
+    # genome build and strand are declared by the source file metadata.
+    expected_build: str  # e.g. "GRCh37"
     note: str
 
 
@@ -90,8 +93,8 @@ CURATED_CONDITIONS: list[CuratedCondition] = [
             CuratedVariant(
                 rsid="rs334", chromosome="11", position_1based=5248232, gene="HBB",
                 clinical_allele="A",  # HbS (Glu6Val); + strand A relative to ref T
-                variant_type="snp", array_typable=True,
-                note="HbS sickle allele. A single SNP arrays type directly.",
+                variant_type="snp", expected_build="GRCh37",
+                note="HbS sickle allele. A single SNP; verify against the raw row.",
             ),
         ],
         founder_context=[
@@ -118,13 +121,13 @@ CURATED_CONDITIONS: list[CuratedCondition] = [
             CuratedVariant(
                 rsid="rs1800562", chromosome="6", position_1based=26093141, gene="HFE",
                 clinical_allele="A",  # C282Y
-                variant_type="snp", array_typable=True,
+                variant_type="snp", expected_build="GRCh37",
                 note="HFE C282Y. The principal hemochromatosis risk allele.",
             ),
             CuratedVariant(
                 rsid="rs1799945", chromosome="6", position_1based=26091179, gene="HFE",
                 clinical_allele="G",  # H63D
-                variant_type="snp", array_typable=True,
+                variant_type="snp", expected_build="GRCh37",
                 note="HFE H63D. Lower-penetrance allele; often compound with C282Y.",
             ),
         ],
@@ -152,14 +155,16 @@ CURATED_CONDITIONS: list[CuratedCondition] = [
         inheritance="autosomal recessive",
         variants=[
             CuratedVariant(
-                rsid="rs80338720", chromosome="15", position_1based=72638892, gene="HEXA",
-                clinical_allele="del",  # 1278insTATC frameshift (indel)
-                variant_type="indel", array_typable=False,
+                rsid="rs80338720", chromosome="7", position_1based=95818685, gene="HEXA",
+                clinical_allele="del",  # founder frameshift (indel)
+                variant_type="indel", expected_build="GRCh37",
                 note=(
-                    "HEXA c.1274_1277dup (a founder frameshift). INDEL: consumer "
-                    "arrays commonly report an I/D placeholder, so this is "
-                    "not_assayed in a SNP-only pipeline. Shown to make the "
-                    "coverage gap explicit, never a reassuring negative."
+                    "HEXA founder frameshift. INDEL. The array DOES cover this "
+                    "rsID (verify the raw row): it reports an I/D placeholder, "
+                    "which a SNP-only pipeline cannot interpret as A/C/G/T, so "
+                    "the call is indel_uninterpretable rather than absent. "
+                    "Position taken from the actual raw data (chr7:95818685), "
+                    "not assumed."
                 ),
             ),
         ],
@@ -186,12 +191,13 @@ CURATED_CONDITIONS: list[CuratedCondition] = [
             CuratedVariant(
                 rsid="rs113993960", chromosome="7", position_1based=117199646, gene="CFTR",
                 clinical_allele="delCTT",  # F508del (3-bp deletion)
-                variant_type="indel", array_typable=False,
+                variant_type="indel", expected_build="GRCh37",
                 note=(
-                    "CFTR F508del, the most common CF variant. A 3-bp DELETION: "
-                    "consumer arrays commonly report an I/D placeholder, so this "
-                    "is not_assayed in a SNP-only pipeline. Shown to make the "
-                    "coverage gap explicit."
+                    "CFTR F508del, the most common CF variant. A 3-bp DELETION. "
+                    "The array DOES cover this rsID (verify the raw row): it "
+                    "reports an I/D placeholder that a SNP-only pipeline cannot "
+                    "interpret, so the call is indel_uninterpretable rather than "
+                    "absent. Position from the actual raw data (chr7:117199646)."
                 ),
             ),
         ],

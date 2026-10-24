@@ -32,11 +32,23 @@ from .conditions import CURATED_CONDITIONS, CuratedCondition, CuratedVariant
 
 @dataclass
 class LocusObservation:
-    """Layer 1: what was actually measured at the locus."""
-    measurement_status: str  # observed | no_call | not_assayed | excluded
-    genotype: str | None     # e.g. "A/A", or None when not observed
-    carries_clinical_allele: bool | None  # None when not observed/assayed
-    clinical_allele_copies: int | None     # 0/1/2, None when not observed
+    """Layer 1: what was actually measured at the locus, with raw provenance.
+
+    measurement_status taxonomy:
+      observed               directly measured A/C/G/T call
+      no_call                site on the array but not called (0)
+      indel_uninterpretable  array reports an I/D placeholder; the site IS
+                             assayed but a SNP-only pipeline cannot interpret it
+      not_observed           rsID absent from the raw file (NOT hom-ref)
+    """
+    measurement_status: str
+    genotype: str | None
+    carries_clinical_allele: bool | None
+    clinical_allele_copies: int | None
+    call_kind: str  # "measured" | "imputed"
+    # Full raw-row provenance (original build, coordinate, reported alleles,
+    # strand conversion). None only when no raw lookup was supplied.
+    raw_provenance: dict | None = None
     note: str = ""
 
 
@@ -74,55 +86,83 @@ class AnnotatedLocus:
         return asdict(self)
 
 
-def _copies_of_clinical_allele(genotype: str, clinical_allele: str) -> int:
-    """Count copies of the clinical allele in a genotype string like 'A/T'."""
+_COMPLEMENT = {"A": "T", "T": "A", "C": "G", "G": "C"}
+
+
+def _copies_of_clinical_allele_stranded(
+    genotype: str, clinical_allele: str, strand_conversion: str,
+) -> int | None:
+    """Count copies of the clinical allele, honoring any strand conversion.
+
+    Returns None when the clinical allele is not a single SNP base (e.g. an
+    indel), so carrier status is not asserted from a SNP genotype.
+    """
+    ca = clinical_allele.upper()
+    if ca not in _COMPLEMENT:
+        return None
+    target = _COMPLEMENT[ca] if strand_conversion == "complement" else ca
     sep = "|" if "|" in genotype else "/"
     alleles = [a.strip().upper() for a in genotype.split(sep)]
-    return sum(1 for a in alleles if a == clinical_allele.upper())
+    return sum(1 for a in alleles if a == target)
 
 
 def annotate_locus(
     condition: CuratedCondition,
     variant: CuratedVariant,
-    observed_genotypes: dict[str, str],
-    measurement_status: dict[str, str],
     ancestry_segments: list[dict],
     evidence_by_rsid: dict[str, list[dict]],
     frequencies_by_rsid: dict[str, list[dict]],
+    raw_provenance: dict | None = None,
 ) -> AnnotatedLocus:
     """Build one ancestry-contextualized locus record.
 
-    observed_genotypes / measurement_status are keyed by rsid. A variant absent
-    from both is not_assayed (we never infer it). ancestry_segments are the
-    normalized AncestrySegment dicts for the sample.
+    raw_provenance is a RawRowProvenance.as_dict() for this rsID (from
+    raw_lookup.lookup_raw_rows). The measurement status and genotype come from
+    the ACTUAL raw row, never assumed. When raw_provenance is None, the locus is
+    reported not_observed (absence is never homozygous reference).
     """
     rsid = variant.rsid
 
-    # --- Layer 1: observation (fact). Never inferred from ancestry. ---
-    status = measurement_status.get(rsid)
-    gt = observed_genotypes.get(rsid)
-    if status is None:
-        # Absent from the processed data. For an indel that arrays can't type,
-        # say so specifically; otherwise it is simply not assayed here.
-        status = "not_assayed"
-    if gt is not None and status == "observed":
-        copies = _copies_of_clinical_allele(gt, variant.clinical_allele)
+    # --- Layer 1: observation (fact), derived from the actual raw row. ---
+    if raw_provenance is None:
         obs = LocusObservation(
-            measurement_status="observed", genotype=gt,
-            carries_clinical_allele=copies > 0, clinical_allele_copies=copies,
-            note="Directly observed genotype." if variant.array_typable else "",
+            measurement_status="not_observed", genotype=None,
+            carries_clinical_allele=None, clinical_allele_copies=None,
+            call_kind="measured", raw_provenance=None,
+            note="No raw lookup supplied; reported not_observed (not hom-ref).",
         )
     else:
-        obs = LocusObservation(
-            measurement_status=status, genotype=None,
-            carries_clinical_allele=None, clinical_allele_copies=None,
-            note=(
-                "Indel not reliably typed by consumer SNP arrays; reported as "
-                "not_assayed rather than negative."
-                if (not variant.array_typable and status == "not_assayed")
-                else "Not observed in this dataset; not a negative result."
-            ),
-        )
+        status = raw_provenance["measurement_status"]
+        gt = raw_provenance.get("genotype")
+        if status == "observed" and gt is not None:
+            copies = _copies_of_clinical_allele_stranded(
+                gt, variant.clinical_allele,
+                raw_provenance.get("strand_conversion", "none"),
+            )
+            obs = LocusObservation(
+                measurement_status="observed", genotype=gt,
+                carries_clinical_allele=(copies is not None and copies > 0),
+                clinical_allele_copies=copies,
+                call_kind=raw_provenance.get("call_kind", "measured"),
+                raw_provenance=raw_provenance,
+                note="Directly measured genotype from the raw row.",
+            )
+        else:
+            note = {
+                "no_call": "Reported as a no-call; not a negative result.",
+                "indel_uninterpretable": (
+                    "Array reports an indel placeholder: the site IS assayed but "
+                    "a SNP-only pipeline cannot interpret it. Not absent, not "
+                    "negative."
+                ),
+                "not_observed": "rsID absent from the raw file; not hom-ref.",
+            }.get(status, "Not a directly measured SNP call.")
+            obs = LocusObservation(
+                measurement_status=status, genotype=None,
+                carries_clinical_allele=None, clinical_allele_copies=None,
+                call_kind=raw_provenance.get("call_kind", "measured"),
+                raw_provenance=raw_provenance, note=note,
+            )
 
     # --- Layer 2: ancestry context over the locus, both copies. ---
     overlapping = [
@@ -150,15 +190,20 @@ def annotate_locus(
         "Inferred ancestry is never used as evidence that an unmeasured variant "
         "is present.",
     ]
-    if obs.measurement_status != "observed":
+    if obs.measurement_status == "not_observed":
         limitations.append(
-            "This locus was not directly observed here; its absence is not a "
-            "negative or reassuring result."
+            "This rsID is absent from the raw file; reported not_observed. "
+            "Absence is NOT homozygous reference and NOT a negative result."
         )
-    if variant.variant_type == "indel":
+    elif obs.measurement_status == "no_call":
         limitations.append(
-            "Indel: not reliably assayed by a consumer SNP array; confirmatory "
-            "testing is required to assess it."
+            "The site is on the array but was not called in this sample; not a "
+            "negative result."
+        )
+    elif obs.measurement_status == "indel_uninterpretable":
+        limitations.append(
+            "The array assays this site but reports an indel placeholder a "
+            "SNP-only pipeline cannot interpret; confirmatory testing is needed."
         )
 
     founder = [asdict(f) for f in condition.founder_context]
@@ -181,20 +226,25 @@ def annotate_locus(
 
 
 def annotate_all(
-    observed_genotypes: dict[str, str],
-    measurement_status: dict[str, str],
     ancestry_segments: list[dict],
     evidence_by_rsid: dict[str, list[dict]],
     frequencies_by_rsid: dict[str, list[dict]],
+    raw_provenance_by_rsid: dict[str, dict] | None = None,
     conditions: list[CuratedCondition] | None = None,
 ) -> list[dict]:
-    """Annotate every curated locus. All curated loci are always included."""
+    """Annotate every curated locus. All curated loci are always included.
+
+    raw_provenance_by_rsid maps rsid -> RawRowProvenance.as_dict() from
+    raw_lookup.lookup_raw_rows. When absent, loci are reported not_observed
+    (absence is never homozygous reference).
+    """
     conds = conditions if conditions is not None else CURATED_CONDITIONS
+    prov = raw_provenance_by_rsid or {}
     out: list[dict] = []
     for cond in conds:
         for var in cond.variants:
             out.append(annotate_locus(
-                cond, var, observed_genotypes, measurement_status,
-                ancestry_segments, evidence_by_rsid, frequencies_by_rsid,
+                cond, var, ancestry_segments, evidence_by_rsid,
+                frequencies_by_rsid, prov.get(var.rsid),
             ).as_dict())
     return out

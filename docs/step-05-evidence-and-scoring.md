@@ -41,11 +41,44 @@ Selected on actual assay coverage and reliable clinical evidence:
 | Tay-Sachs | HEXA | founder frameshift | **no (indel)** | ClinVar 3827 |
 | Cystic fibrosis | CFTR | F508del | **no (indel)** | ClinVar 7105 |
 
-The two indel loci are included deliberately: consumer SNP arrays report them as
-I/D placeholders, so they are `not_assayed` here and shown as a coverage gap,
-never a reassuring negative. All four conditions were verified against the real
-input: rs334, rs1800562, rs1799945 are present as SNP calls; the Tay-Sachs and
-CFTR variants appear as indel placeholders (not_assayed), as expected.
+### Per-variant raw-row provenance (`raw_lookup.py`)
+
+For every curated variant we look up the MATCHING ORIGINAL raw-data row and
+report its genome build (from the file's own metadata), coordinate, reported
+alleles, and any strand conversion. The measurement status comes from the actual
+row, never assumed:
+
+| status | meaning |
+| --- | --- |
+| `observed` | directly measured A/C/G/T call |
+| `no_call` | site on the array, reported `0` (not negative) |
+| `indel_uninterpretable` | array reports an I/D placeholder — the site IS assayed, but a SNP-only pipeline cannot interpret it (NOT `not_assayed`, NOT absent) |
+| `not_observed` | rsID absent from the raw file (NEVER homozygous reference) |
+
+Directly measured calls carry `call_kind = "measured"`; imputed calls would be
+`"imputed"` (none in this consumer-array path). Absence is never treated as
+homozygous reference.
+
+**Checked the actual file, not assumptions.** Doing so corrected two errors in
+the initial manifest: the HEXA position was wrong (chr15 vs the real
+chr7:95818685), and the two indel loci are in fact COVERED by the array (reported
+as I/I), so their honest status is `indel_uninterpretable`, not "not assayed
+because it's an indel."
+
+### Strand handling (rs334 trap)
+
+Both the source file and the curated clinical allele are on the forward (+)
+strand, so they are already strand-consistent and the clinical allele is used
+DIRECTLY. We do NOT infer a complement flip just because the complement base
+appears. This matters: rs334 has reference `T` and the sickle (HbS) allele `A`
+on the + strand; a reported `T/T` is genuine homozygous reference = **0 copies
+of HbS**. An earlier opportunistic complement match wrongly counted T/T as 2
+copies (a false homozygous-sickle result); verified against the GRCh37 reference
+(base `T` at chr11:5248232) and fixed. Strand-ambiguous pairs (A/T, C/G) are
+flagged for confirmation rather than silently resolved.
+
+Real-input result: rs334 `T/T` -> 0 copies; HFE rs1800562 `G/G` and rs1799945
+`C/C` -> 0 copies each; HEXA and CFTR indels -> `indel_uninterpretable`.
 
 ## PGS000057 investigation and verdict
 

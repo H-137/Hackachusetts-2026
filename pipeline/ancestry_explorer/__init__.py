@@ -12,6 +12,7 @@ from .composition import compose_by_span
 from .conditions import CURATED_CONDITIONS, manifest as condition_manifest
 from .family import resolve_parental_origin, summarize_trio
 from .pgs import parse_scoring_file, score_pgs000057
+from .raw_lookup import lookup_raw_rows
 from .harmonize import HarmonizationReport, harmonize
 from .parser import ParseResult, parse_ancestrydna
 from .phasing import PhasingResult, phase_chromosome
@@ -36,4 +37,5 @@ __all__ = [
     "condition_manifest",
     "score_pgs000057",
     "parse_scoring_file",
+    "lookup_raw_rows",
 ]

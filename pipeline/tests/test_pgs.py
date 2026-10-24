@@ -85,6 +85,14 @@ def test_real_scoring_file_parses_57():
 
 # ---- annotation assembler guardrails ----
 
+def _prov(rsid, status, genotype=None, strand="none"):
+    return {
+        "rsid": rsid, "found": status != "not_observed",
+        "measurement_status": status, "genotype": genotype,
+        "call_kind": "measured", "strand_conversion": strand,
+    }
+
+
 def test_locus_shown_even_when_ancestry_mismatches():
     # Sickle cell (HBB founder context AFR) but ancestry says EUR -> still shown.
     segs = [{
@@ -94,37 +102,46 @@ def test_locus_shown_even_when_ancestry_mismatches():
         "chromosome": "11", "start_0based": 0, "end_0based_exclusive": 300000000,
         "copy_index": 2, "ancestry_label": "TSI", "assignment_status": "assigned",
     }]
-    out = annotate_all({}, {}, segs, {}, {})
+    out = annotate_all(segs, {}, {}, {})
     hbb = [a for a in out if a["gene"] == "HBB"]
     assert hbb, "curated HBB locus must be shown regardless of ancestry"
-    # Ancestry context is attached, but the locus is present.
     assert hbb[0]["ancestry_context"]["copy1_label"] == "GBR"
 
 
 def test_unmeasured_variant_not_inferred_present_from_ancestry():
-    # No observed genotype for HBB; ancestry AFR must NOT imply presence.
+    # No raw provenance for HBB; ancestry AFR must NOT imply presence.
     segs = [{
         "chromosome": "11", "start_0based": 0, "end_0based_exclusive": 300000000,
         "copy_index": 1, "ancestry_label": "YRI", "assignment_status": "assigned",
     }]
-    out = annotate_all({}, {}, segs, {}, {})
+    out = annotate_all(segs, {}, {}, {})  # no raw provenance -> not_observed
     hbb = next(a for a in out if a["gene"] == "HBB")
     obs = hbb["observation"]
-    assert obs["measurement_status"] in ("not_assayed", "no_call")
+    assert obs["measurement_status"] == "not_observed"
     assert obs["carries_clinical_allele"] is None  # never inferred
-    assert any("not" in lim.lower() for lim in hbb["limitations"])
+    assert any("hom" in lim.lower() or "not_observed" in lim.lower()
+               or "absence" in lim.lower() for lim in hbb["limitations"])
 
 
-def test_indel_locus_is_not_assayed():
-    # CFTR F508del is an indel; with no observation it must be not_assayed.
-    out = annotate_all({}, {}, [], {}, {})
+def test_absence_is_not_hom_ref():
+    out = annotate_all([], {}, {}, {})  # nothing supplied
+    for a in out:
+        assert a["observation"]["measurement_status"] == "not_observed"
+        assert a["observation"]["genotype"] is None
+        assert a["observation"]["carries_clinical_allele"] is None
+
+
+def test_indel_uninterpretable_when_array_reports_indel():
+    # CFTR F508del reported by the array as an I/D placeholder.
+    prov = {"rs113993960": _prov("rs113993960", "indel_uninterpretable")}
+    out = annotate_all([], {}, {}, prov)
     cftr = next(a for a in out if a["gene"] == "CFTR")
-    assert cftr["observation"]["measurement_status"] == "not_assayed"
+    assert cftr["observation"]["measurement_status"] == "indel_uninterpretable"
     assert cftr["variant_type"] == "indel"
 
 
 def test_frequency_vs_effect_note_present_on_every_locus():
-    out = annotate_all({}, {}, [], {}, {})
+    out = annotate_all([], {}, {}, {})
     assert out
     for a in out:
         assert "frequency" in a["frequency_vs_effect_note"].lower()
@@ -132,10 +149,31 @@ def test_frequency_vs_effect_note_present_on_every_locus():
 
 def test_observed_carrier_counting():
     # rs334 observed as A/A (homozygous HbS, clinical allele A) -> 2 copies.
-    gts = {"rs334": "A/A"}
-    status = {"rs334": "observed"}
-    out = annotate_all(gts, status, [], {}, {})
+    prov = {"rs334": _prov("rs334", "observed", genotype="A/A")}
+    out = annotate_all([], {}, {}, prov)
     hbb = next(a for a in out if a["rsid"] == "rs334")
     assert hbb["observation"]["measurement_status"] == "observed"
     assert hbb["observation"]["clinical_allele_copies"] == 2
     assert hbb["observation"]["carries_clinical_allele"] is True
+    assert hbb["observation"]["call_kind"] == "measured"
+
+
+def test_annotate_honors_complement_flag_when_set():
+    # annotate.py honors a complement flag IF raw_lookup legitimately sets one
+    # (e.g. a genuinely reverse-strand source). raw_lookup does NOT set it for
+    # forward-strand consumer files (see test_no_spurious_complement_flip), so in
+    # practice rs334 T/T against clinical A yields 0 copies end to end.
+    prov = {"rs334": _prov("rs334", "observed", genotype="T/T", strand="complement")}
+    out = annotate_all([], {}, {}, prov)
+    hbb = next(a for a in out if a["rsid"] == "rs334")
+    assert hbb["observation"]["clinical_allele_copies"] == 2
+
+
+def test_rs334_forward_strand_homref_is_zero_copies():
+    # The real-data case: T/T reported forward strand, clinical allele A, strand
+    # conversion 'none' -> 0 copies. This is the correct, non-flipped result.
+    prov = {"rs334": _prov("rs334", "observed", genotype="T/T", strand="none")}
+    out = annotate_all([], {}, {}, prov)
+    hbb = next(a for a in out if a["rsid"] == "rs334")
+    assert hbb["observation"]["clinical_allele_copies"] == 0
+    assert hbb["observation"]["carries_clinical_allele"] is False
