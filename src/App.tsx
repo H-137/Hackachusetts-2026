@@ -1,14 +1,18 @@
 import { useCallback, useState } from "react";
 import { parseAncestryDna } from "./domain/parser";
 import { loadSyntheticDemo } from "./adapters/demo";
+import { loadAnalysisBundle } from "./adapters/analysisBundle";
+import type { AnalysisBundle } from "./domain/explorer";
 import type { ParseResult, Sample } from "./domain/types";
 import { UploadScreen } from "./components/UploadScreen";
 import { QualityReport } from "./components/QualityReport";
+import { Explorer } from "./components/Explorer";
 
 type View =
   | { kind: "landing" }
   | { kind: "upload" }
-  | { kind: "report"; parse: ParseResult; sample: Sample };
+  | { kind: "report"; parse: ParseResult; sample: Sample }
+  | { kind: "explorer"; bundle: AnalysisBundle };
 
 function buildUploadSample(parse: ParseResult): Sample {
   return {
@@ -43,12 +47,19 @@ export function App() {
     setView({ kind: "report", parse, sample });
   }, []);
 
+  const handleExplorer = useCallback(() => {
+    setView({ kind: "explorer", bundle: loadAnalysisBundle() });
+  }, []);
+
   const reset = useCallback(() => setView({ kind: "landing" }), []);
 
   return (
     <main className="app">
       <h1>Ancestry-Aware Variant Explorer</h1>
-      <p className="subtitle">Research prototype — Step 1: input parsing and quality report</p>
+      <p className="subtitle">
+        Research prototype — chromosome-level ancestry, variant evidence, and
+        coverage, with visible uncertainty
+      </p>
 
       <div className="disclaimer" role="note">
         This is a research prototype using synthetic data by default. It is not a
@@ -60,23 +71,31 @@ export function App() {
       {view.kind === "landing" && (
         <section className="choices" aria-label="Choose a data source">
           <div className="card">
+            <h3>Explore synthetic analysis</h3>
+            <p className="subtitle">
+              A precomputed synthetic bundle (ancestry, variants, evidence,
+              scores) rendered in the interactive explorer. Fully offline.
+            </p>
+            <button onClick={handleExplorer}>Open explorer</button>
+          </div>
+          <div className="card">
             <h3>Upload AncestryDNA text</h3>
             <p className="subtitle">
-              Parsed locally in your browser. The file is not uploaded, stored, or
-              transmitted.
+              Parsed locally in your browser. The file is not uploaded, stored,
+              or transmitted.
             </p>
-            <button onClick={() => setView({ kind: "upload" })}>
+            <button className="secondary" onClick={() => setView({ kind: "upload" })}>
               Upload a file
             </button>
           </div>
           <div className="card">
-            <h3>Explore synthetic demo</h3>
+            <h3>Parse-only demo</h3>
             <p className="subtitle">
-              A bundled synthetic fixture. Runs fully offline through the same
-              parser.
+              A small synthetic fixture run through the parser and quality
+              report (Step 1).
             </p>
             <button className="secondary" onClick={handleDemo}>
-              Explore demo
+              Parse demo
             </button>
           </div>
         </section>
@@ -88,6 +107,10 @@ export function App() {
 
       {view.kind === "report" && (
         <QualityReport parse={view.parse} sample={view.sample} onReset={reset} />
+      )}
+
+      {view.kind === "explorer" && (
+        <Explorer bundle={view.bundle} onReset={reset} />
       )}
     </main>
   );
