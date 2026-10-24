@@ -28,6 +28,10 @@ interface Props {
   onHighlightChange: (highlighted: string[]) => void;
   /** Report the active tab so the globe can render only on Chromosomes. */
   onTabChange: (tab: string) => void;
+  /** Download the styled HTML report. */
+  onDownloadHtml: () => void;
+  /** Open the printable report (save as PDF). */
+  onPrintPdf: () => void;
 }
 
 type Tab = "overview" | "chromosomes" | "watchlist" | "conditions";
@@ -44,6 +48,8 @@ export function Explorer({
   onReset,
   onHighlightChange,
   onTabChange,
+  onDownloadHtml,
+  onPrintPdf,
 }: Props) {
   const [tab, setTab] = useState<Tab>("overview");
   const firstChrom = AUTOSOME_ORDER[0] ?? "1";
@@ -55,6 +61,20 @@ export function Explorer({
   const [watchlistCondition, setWatchlistCondition] = useState<string | null>(null);
   // Chromosome tab: chart (track/lollipop) or the accessible linked table.
   const [chromView, setChromView] = useState<"chart" | "table">("chart");
+  // Report-format dropdown (in the tab bar).
+  const [reportMenuOpen, setReportMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!reportMenuOpen) return;
+    const close = () => setReportMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [reportMenuOpen]);
 
   // No zoom for now: the viewer always shows the full selected chromosome.
   const view = { start: 0, end: chromLength(chrom) };
@@ -142,9 +162,49 @@ export function Explorer({
           Conditions
         </button>
         <span className="tab-spacer" />
-        <button className="secondary" onClick={onReset}>
-          Reset and clear data
+
+        <button className="report-btn" onClick={onReset}>
+          Reset/clear data
         </button>
+
+        <div className="report-menu">
+          <button
+            className="report-btn"
+            aria-haspopup="menu"
+            aria-expanded={reportMenuOpen}
+            onClick={(e) => {
+              e.stopPropagation();
+              setReportMenuOpen((o) => !o);
+            }}
+            title="Generate a research report"
+          >
+            Generate report <span className="report-caret">▾</span>
+          </button>
+          {reportMenuOpen && (
+            <div className="report-menu-pop" role="menu">
+              <button
+                role="menuitem"
+                onClick={() => {
+                  onDownloadHtml();
+                  setReportMenuOpen(false);
+                }}
+              >
+                Download HTML
+                <span className="report-menu-sub">styled, offline, self-contained</span>
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  onPrintPdf();
+                  setReportMenuOpen(false);
+                }}
+              >
+                Save as PDF
+                <span className="report-menu-sub">opens print dialog → save as PDF</span>
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
 
       {tab === "overview" && (
@@ -167,10 +227,17 @@ export function Explorer({
 
       {tab === "chromosomes" && (
         <section aria-label="Chromosome explorer" className="chrom-tab">
-          {/* Region caption + chart/table view toggle, always visible. */}
+          {/* Chart/table view toggle, always visible. The clinician view also
+              shows the overlapping-ancestry caption here; the patient view
+              omits it because the region-info window already states it. */}
           <div className="region-caption-bar">
             <div className="region-caption-text">
-            {activeRegionNames.length > 0 ? (
+            {role === "patient" ? (
+              <span className="subtitle">
+                Pick a chromosome, then click a region to see what it means.
+                Drag the globe to rotate; click to pause or resume its spin.
+              </span>
+            ) : activeRegionNames.length > 0 ? (
               <>
                 <span className="globe-caption-lead">
                   Local ancestry here maps to
@@ -198,9 +265,8 @@ export function Explorer({
               </>
             ) : (
               <span className="subtitle">
-                {role === "patient"
-                  ? "Pick a chromosome, then click a region to map its inferred ancestry onto the globe. Drag the globe to rotate; click to pause or resume its spin."
-                  : "Pick a chromosome, then click a region to see its local-ancestry context and any curated carrier status."}
+                Pick a chromosome, then click a region to see its local-ancestry
+                context and any curated carrier status.
               </span>
             )}
             </div>

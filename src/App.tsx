@@ -103,6 +103,8 @@ export function App() {
     return () => document.body.classList.remove("has-globe-bg");
   }, [showGlobeBg]);
 
+
+
   return (
     <>
       {showGlobeBg && (
@@ -120,42 +122,22 @@ export function App() {
           </p>
         </div>
         {view.kind === "explorer" && (
-          <div className="header-actions">
-            <div
-              className="role-toggle"
-              role="radiogroup"
-              aria-label="View mode"
-            >
-              <button
-                role="radio"
-                aria-checked={role === "clinician"}
-                className={role === "clinician" ? "role-btn active" : "role-btn"}
-                onClick={() => setRole("clinician")}
-              >
-                Clinician
-              </button>
-              <button
-                role="radio"
-                aria-checked={role === "patient"}
-                className={role === "patient" ? "role-btn active" : "role-btn"}
-                onClick={() => setRole("patient")}
-              >
-                Patient
-              </button>
-            </div>
+          <div className="role-toggle" role="radiogroup" aria-label="View mode">
             <button
-              className="report-btn"
-              onClick={() => downloadReportHtml(view.bundle)}
-              title="Download a styled research report (coverage, findings, scores, uncertainty, methods, sources)"
+              role="radio"
+              aria-checked={role === "clinician"}
+              className={role === "clinician" ? "role-btn active" : "role-btn"}
+              onClick={() => setRole("clinician")}
             >
-              Generate report
+              Clinician
             </button>
             <button
-              className="report-btn secondary-report"
-              onClick={() => printReport(view.bundle)}
-              title="Open a printable version to save as PDF"
+              role="radio"
+              aria-checked={role === "patient"}
+              className={role === "patient" ? "role-btn active" : "role-btn"}
+              onClick={() => setRole("patient")}
             >
-              Print / PDF
+              Patient
             </button>
           </div>
         )}
@@ -233,6 +215,8 @@ export function App() {
           <ErrorBoundary onReset={reset}>
             <Explorer
               bundle={view.bundle}
+              onDownloadHtml={() => downloadReportHtml(view.bundle)}
+              onPrintPdf={() => printReport(view.bundle)}
               role={role}
               onReset={reset}
               onHighlightChange={setHighlighted}
