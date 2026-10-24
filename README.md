@@ -11,9 +11,32 @@ chromosome explorer.
 
 ## Current status
 
-**Step 1 of 7 complete** — repository scaffold, normalized schema contract, and
-the AncestryDNA raw-text parser (browser + Python), with synthetic fixtures and
-upload/quality-report screens. See `docs/step-01-parser.md`.
+**Steps 1–2 of 7 complete.**
+
+- Step 1 — repository scaffold, normalized schema contract, and the AncestryDNA
+  raw-text parser (browser + Python), with synthetic fixtures and
+  upload/quality-report screens. See `docs/step-01-parser.md`.
+- Step 2 — pinned GRCh37 reference assets with a checksum-verified setup
+  command, and harmonization of parsed records into a sorted, indexed,
+  reference-validated VCF. Validated on a real chr22 slice. See
+  `docs/step-02-harmonization.md`.
+
+### Step 2 reference setup and harmonization
+
+Requires the htslib toolchain: `brew install htslib bcftools samtools`.
+
+```sh
+cd pipeline
+# Download the small real slice (chr22 FASTA + panel window), verify checksums.
+PYTHONPATH=. python3 -m ancestry_explorer.setup_cli setup --mode slice
+
+# Harmonize a local AncestryDNA file into a reference-aligned VCF (slice window).
+PYTHONPATH=. python3 -m ancestry_explorer.setup_cli harmonize \
+  path/to/AncestryDNA.txt --out local-out/sample.chr22.vcf.gz --slice
+
+# Full-genome reference (~892 MB) when needed:
+PYTHONPATH=. python3 -m ancestry_explorer.setup_cli setup --mode full
+```
 
 ## Project layout
 
