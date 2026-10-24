@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { parseAncestryDna } from "./domain/parser";
 import { loadSyntheticDemo } from "./adapters/demo";
 import { loadAnalysisBundle } from "./adapters/analysisBundle";
@@ -7,6 +7,9 @@ import type { ParseResult, Sample } from "./domain/types";
 import { UploadScreen } from "./components/UploadScreen";
 import { QualityReport } from "./components/QualityReport";
 import { Explorer } from "./components/Explorer";
+
+// ThreeJS/WebGL globe is heavy; load it only once a sample is being explored.
+const Globe = lazy(() => import("./components/Globe"));
 
 type View =
   | { kind: "landing" }
@@ -36,6 +39,12 @@ function buildUploadSample(parse: ParseResult): Sample {
 
 export function App() {
   const [view, setView] = useState<View>({ kind: "landing" });
+  // Reference regions to highlight on the background globe, driven by the
+  // explorer's current selection (lifted here so the fixed background globe can
+  // react to selections made deeper in the tree).
+  const [highlighted, setHighlighted] = useState<string[]>([]);
+  // The explorer's active tab, lifted so the globe only renders on Chromosomes.
+  const [explorerTab, setExplorerTab] = useState<string>("overview");
 
   const handleParsed = useCallback((text: string) => {
     const parse = parseAncestryDna(text);
@@ -51,10 +60,29 @@ export function App() {
     setView({ kind: "explorer", bundle: loadAnalysisBundle() });
   }, []);
 
-  const reset = useCallback(() => setView({ kind: "landing" }), []);
+  const reset = useCallback(() => {
+    setHighlighted([]);
+    setExplorerTab("overview");
+    setView({ kind: "landing" });
+  }, []);
+
+  const showGlobeBg = view.kind === "explorer" && explorerTab === "chromosomes";
+
+  // Toggle a body class so CSS can make layout wrappers click-through while the
+  // background globe is present (so the open area passes events to the canvas).
+  useEffect(() => {
+    document.body.classList.toggle("has-globe-bg", showGlobeBg);
+    return () => document.body.classList.remove("has-globe-bg");
+  }, [showGlobeBg]);
 
   return (
-    <main className="app">
+    <>
+      {showGlobeBg && (
+        <Suspense fallback={null}>
+          <Globe highlighted={highlighted} fullpage />
+        </Suspense>
+      )}
+      <main className="app">
       <h1>Ancestry-Aware Variant Explorer</h1>
       <p className="subtitle">
         Research prototype — chromosome-level ancestry, variant evidence, and
@@ -109,9 +137,15 @@ export function App() {
         <QualityReport parse={view.parse} sample={view.sample} onReset={reset} />
       )}
 
-      {view.kind === "explorer" && (
-        <Explorer bundle={view.bundle} onReset={reset} />
-      )}
-    </main>
+        {view.kind === "explorer" && (
+          <Explorer
+            bundle={view.bundle}
+            onReset={reset}
+            onHighlightChange={setHighlighted}
+            onTabChange={setExplorerTab}
+          />
+        )}
+      </main>
+    </>
   );
 }

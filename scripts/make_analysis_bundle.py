@@ -307,6 +307,64 @@ def build_variants_freqs_evidence() -> tuple[list[dict], list[dict], list[dict]]
     return variants, freqs, evidence
 
 
+# Approximate array marker density: one assayed SNP per this many base pairs.
+# Real consumer arrays sit around ~600-700k autosomal markers genome-wide
+# (~1 per ~5 kb). We thin that heavily for a browsable synthetic demo while
+# keeping the *shape* (dense arms, sparse gaps) realistic.
+COVERAGE_SPACING_BP = 300_000
+
+# Deliberate low-coverage gaps (0-based, half-open) so zooming reveals sparse
+# regions. Placed over/near curated genes to make the "absence is not a
+# reassuring negative" point tangible when a user zooms into them.
+COVERAGE_GAPS = [
+    ("17", 41_150_000, 41_330_000),  # across BRCA1
+    ("13", 32_860_000, 33_010_000),  # across BRCA2
+    ("7", 117_100_000, 117_340_000),  # across CFTR
+    ("11", 5_100_000, 5_400_000),    # across HBB
+]
+
+
+def _in_gap(chrom: str, pos0: int) -> bool:
+    for gc, gs, ge in COVERAGE_GAPS:
+        if gc == chrom and gs <= pos0 < ge:
+            return True
+    return False
+
+
+def build_coverage_markers(rng: random.Random) -> list[dict]:
+    """Plain assayed SNP positions that establish COVERAGE only.
+
+    These carry NO disease evidence and NO population frequency; they exist so
+    marker density (and sparse gaps) is visible when zooming. They are tagged
+    quality_flags=["coverage_only"] so the UI can distinguish them from curated,
+    disease-annotated variants. All synthetic.
+    """
+    markers: list[dict] = []
+    for chrom, length in AUTOSOME_LENGTHS.items():
+        pos = COVERAGE_SPACING_BP
+        while pos < length:
+            # Jitter spacing so density looks array-like, not perfectly regular.
+            jitter = int(rng.uniform(-0.4, 0.4) * COVERAGE_SPACING_BP)
+            pos0 = max(0, pos + jitter)
+            pos += COVERAGE_SPACING_BP
+            if pos0 >= length or _in_gap(chrom, pos0):
+                continue
+            markers.append({
+                "variant_key": f"GRCh37:{chrom}:{pos0 + 1}:cov",
+                "chromosome": chrom,
+                "position_0based": pos0,
+                "ref": None,
+                "alt": None,
+                "rsid": None,
+                "genotype": ".",
+                "phased": True,
+                "phase_set": f"{chrom}:PS1",
+                "measurement_status": "observed",
+                "quality_flags": ["coverage_only"],
+            })
+    return markers
+
+
 def build_scores() -> list[dict]:
     """One disease-specific score result with an explicit unscorable example."""
     return [
@@ -345,7 +403,9 @@ def build_scores() -> list[dict]:
 
 def main() -> None:
     rng = random.Random(SEED)
-    variants, freqs, evidence = build_variants_freqs_evidence()
+    curated, freqs, evidence = build_variants_freqs_evidence()
+    coverage = build_coverage_markers(rng)
+    variants = curated + coverage
     bundle = {
         "sample": {
             "sample_id": "synthetic-bundle-001",
@@ -387,7 +447,7 @@ def main() -> None:
     }
     OUT.write_text(json.dumps(bundle, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {OUT} with {len(bundle['segments'])} segments, "
-          f"{len(variants)} variants.")
+          f"{len(curated)} curated variants, {len(coverage)} coverage markers.")
 
 
 if __name__ == "__main__":
