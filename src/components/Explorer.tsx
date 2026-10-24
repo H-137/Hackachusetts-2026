@@ -17,6 +17,7 @@ import { ConditionPage, useConditionGroups } from "./ConditionPage";
 import { PatientRegionInfo } from "./PatientRegionInfo";
 import { RegionClinicalPanel } from "./RegionClinicalPanel";
 import { VariantDetail } from "./VariantDetail";
+import { VariantTable } from "./VariantTable";
 import { Watchlist } from "./Watchlist";
 
 interface Props {
@@ -52,6 +53,8 @@ export function Explorer({
   const [condition, setCondition] = useState<string | null>(null);
   // A condition to focus in the Watchlist when deep-linked from Conditions.
   const [watchlistCondition, setWatchlistCondition] = useState<string | null>(null);
+  // Chromosome tab: chart (track/lollipop) or the accessible linked table.
+  const [chromView, setChromView] = useState<"chart" | "table">("chart");
 
   // No zoom for now: the viewer always shows the full selected chromosome.
   const view = { start: 0, end: chromLength(chrom) };
@@ -164,9 +167,9 @@ export function Explorer({
 
       {tab === "chromosomes" && (
         <section aria-label="Chromosome explorer" className="chrom-tab">
-          {/* Region caption moved ABOVE the selection area so it is always
-              visible without scrolling. */}
+          {/* Region caption + chart/table view toggle, always visible. */}
           <div className="region-caption-bar">
+            <div className="region-caption-text">
             {activeRegionNames.length > 0 ? (
               <>
                 <span className="globe-caption-lead">
@@ -200,6 +203,26 @@ export function Explorer({
                   : "Pick a chromosome, then click a region to see its local-ancestry context and any curated carrier status."}
               </span>
             )}
+            </div>
+
+            <div className="view-toggle" role="radiogroup" aria-label="View">
+              <button
+                role="radio"
+                aria-checked={chromView === "chart"}
+                className={chromView === "chart" ? "vt-btn active" : "vt-btn"}
+                onClick={() => setChromView("chart")}
+              >
+                Chart
+              </button>
+              <button
+                role="radio"
+                aria-checked={chromView === "table"}
+                className={chromView === "table" ? "vt-btn active" : "vt-btn"}
+                onClick={() => setChromView("table")}
+              >
+                Table
+              </button>
+            </div>
           </div>
 
           {role === "patient" ? (
@@ -213,25 +236,41 @@ export function Explorer({
                   <ChromosomePairMenu value={chrom} onChange={changeChrom} />
                 </div>
                 <div className="viewer-body">
-                  <div className="track-scroll">
-                    <ChromosomeTrack
-                      bundle={bundle}
-                      chromosome={chrom}
-                      viewStart={view.start}
-                      viewEnd={view.end}
-                      selected={region}
-                      orientation="vertical"
-                      onSelectRegion={onSelectRegion}
-                      onSelectVariant={onSelectVariant}
-                    />
-                  </div>
-                  <div className="legend small">
-                    <span>
-                      <span className="seg-dot" style={{ background: "#4b9fe1" }} />{" "}
-                      gene
-                    </span>
-                    <span>hatched = uncertain</span>
-                  </div>
+                  {chromView === "chart" ? (
+                    <>
+                      <div className="track-scroll">
+                        <ChromosomeTrack
+                          bundle={bundle}
+                          chromosome={chrom}
+                          viewStart={view.start}
+                          viewEnd={view.end}
+                          selected={region}
+                          orientation="vertical"
+                          onSelectRegion={onSelectRegion}
+                          onSelectVariant={onSelectVariant}
+                        />
+                      </div>
+                      <div className="legend small">
+                        <span>
+                          <span className="seg-dot" style={{ background: "#4b9fe1" }} />{" "}
+                          gene
+                        </span>
+                        <span>hatched = uncertain</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="table-scroll">
+                      <VariantTable
+                        bundle={bundle}
+                        chromosome={chrom}
+                        viewStart={view.start}
+                        viewEnd={view.end}
+                        selected={region}
+                        onSelectVariant={onSelectVariant}
+                        onSelectRegion={onSelectRegion}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -252,37 +291,53 @@ export function Explorer({
                 </div>
 
                 <div className="viewer-body">
-                  <div className="track-scroll">
-                    <ChromosomeTrack
-                      bundle={bundle}
-                      chromosome={chrom}
-                      viewStart={view.start}
-                      viewEnd={view.end}
-                      selected={region}
-                      orientation="horizontal"
-                      onSelectRegion={onSelectRegion}
-                      onSelectVariant={onSelectVariant}
-                    />
-                  </div>
+                  {chromView === "chart" ? (
+                    <>
+                      <div className="track-scroll">
+                        <ChromosomeTrack
+                          bundle={bundle}
+                          chromosome={chrom}
+                          viewStart={view.start}
+                          viewEnd={view.end}
+                          selected={region}
+                          orientation="horizontal"
+                          onSelectRegion={onSelectRegion}
+                          onSelectVariant={onSelectVariant}
+                        />
+                      </div>
 
-                  <div className="legend small">
-                    <span>
-                      <span className="seg-dot" style={{ background: "#4b9fe1" }} />{" "}
-                      gene region
-                    </span>
-                    <span>
-                      <span className="seg-dot" style={{ background: "#e5534b" }} />{" "}
-                      curated variant
-                    </span>
-                    <span>thin ticks = assayed markers</span>
-                    <span>hatched = uncertain / unknown</span>
-                  </div>
+                      <div className="legend small">
+                        <span>
+                          <span className="seg-dot" style={{ background: "#4b9fe1" }} />{" "}
+                          gene region
+                        </span>
+                        <span>
+                          <span className="seg-dot" style={{ background: "#e5534b" }} />{" "}
+                          curated variant
+                        </span>
+                        <span>thin ticks = assayed markers</span>
+                        <span>hatched = uncertain / unknown</span>
+                      </div>
 
-                  {!region && (
-                    <p className="subtitle">
-                      Click a gene region (blue) or an ancestry segment to inspect
-                      it. Click a red marker for variant detail.
-                    </p>
+                      {!region && (
+                        <p className="subtitle">
+                          Click a gene region (blue) or an ancestry segment to
+                          inspect it. Click a red marker for variant detail.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="table-scroll">
+                      <VariantTable
+                        bundle={bundle}
+                        chromosome={chrom}
+                        viewStart={view.start}
+                        viewEnd={view.end}
+                        selected={region}
+                        onSelectVariant={onSelectVariant}
+                        onSelectRegion={onSelectRegion}
+                      />
+                    </div>
                   )}
                 </div>
               </div>

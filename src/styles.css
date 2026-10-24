@@ -601,10 +601,14 @@ body.has-globe-bg .app > .subtitle {
   background: rgba(26, 32, 41, 0.92);
   border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden;
+  /* Not clipped, so the chromosome dropdown can overflow the panel edge and be
+     fully scrolled. Inner regions (header, track) manage their own rounding. */
+  overflow: visible;
 }
 
 .viewer-head {
+  position: relative;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1159,6 +1163,37 @@ body.has-globe-bg .assistant {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.report-btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+}
+
+.report-btn:hover {
+  background: var(--accent);
+  color: #06121d;
+}
+
+.report-btn.secondary-report {
+  border-color: var(--border);
+}
+
+.report-btn.secondary-report:hover {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--accent);
 }
 
 .role-toggle {
@@ -1929,3 +1964,104 @@ ul.tight li {
 .copy-lines .seg-dot {
   margin: 0 0.3rem;
 }
+
+/* ---------- Chromosome tab: chart/table view toggle ---------- */
+
+.region-caption-bar {
+  justify-content: space-between;
+}
+
+.region-caption-text {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.view-toggle {
+  display: inline-flex;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  flex: none;
+}
+
+.vt-btn {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.8rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.vt-btn.active {
+  background: var(--accent);
+  color: #06121d;
+}
+
+/* ---------- Linked data table ---------- */
+
+.table-scroll {
+  overflow: auto;
+  max-height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.variant-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.sr-caption {
+  text-align: left;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 0.5rem 0.6rem;
+  caption-side: top;
+}
+
+.variant-data-table th,
+.variant-data-table td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.variant-data-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.variant-data-table tbody tr {
+  cursor: pointer;
+}
+
+.variant-data-table tbody tr:hover {
+  background: var(--panel-2);
+}
+
+.variant-data-table tbody tr.selected {
+  background: rgba(75, 159, 225, 0.18);
+}
+
+.variant-data-table tbody th[scope="row"] {
+  font-weight: 700;
+}
+
+.variant-data-table td.num {
+  font-variant-numeric: tabular-nums;
+}
+
+

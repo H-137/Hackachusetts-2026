@@ -4,6 +4,7 @@ import { loadSyntheticDemo } from "./adapters/demo";
 import { loadAnalysisBundle } from "./adapters/analysisBundle";
 import type { AnalysisBundle } from "./domain/explorer";
 import type { ParseResult, Sample } from "./domain/types";
+import { downloadReportHtml, printReport } from "./domain/report";
 import { UploadScreen } from "./components/UploadScreen";
 import { QualityReport } from "./components/QualityReport";
 import { Explorer } from "./components/Explorer";
@@ -119,26 +120,42 @@ export function App() {
           </p>
         </div>
         {view.kind === "explorer" && (
-          <div
-            className="role-toggle"
-            role="radiogroup"
-            aria-label="View mode"
-          >
-            <button
-              role="radio"
-              aria-checked={role === "clinician"}
-              className={role === "clinician" ? "role-btn active" : "role-btn"}
-              onClick={() => setRole("clinician")}
+          <div className="header-actions">
+            <div
+              className="role-toggle"
+              role="radiogroup"
+              aria-label="View mode"
             >
-              Clinician
+              <button
+                role="radio"
+                aria-checked={role === "clinician"}
+                className={role === "clinician" ? "role-btn active" : "role-btn"}
+                onClick={() => setRole("clinician")}
+              >
+                Clinician
+              </button>
+              <button
+                role="radio"
+                aria-checked={role === "patient"}
+                className={role === "patient" ? "role-btn active" : "role-btn"}
+                onClick={() => setRole("patient")}
+              >
+                Patient
+              </button>
+            </div>
+            <button
+              className="report-btn"
+              onClick={() => downloadReportHtml(view.bundle)}
+              title="Download a styled research report (coverage, findings, scores, uncertainty, methods, sources)"
+            >
+              Generate report
             </button>
             <button
-              role="radio"
-              aria-checked={role === "patient"}
-              className={role === "patient" ? "role-btn active" : "role-btn"}
-              onClick={() => setRole("patient")}
+              className="report-btn secondary-report"
+              onClick={() => printReport(view.bundle)}
+              title="Open a printable version to save as PDF"
             >
-              Patient
+              Print / PDF
             </button>
           </div>
         )}
