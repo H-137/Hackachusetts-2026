@@ -27,6 +27,11 @@ chromosome explorer.
   the 26 fine-grain 1000 Genomes reference populations. Results are framed as
   inferred similarity to reference populations; sub-continental resolution from
   consumer-array data is not validated. See `docs/step-04-ancestry.md`.
+- Step 5 — curated observed-variant panel with five-layer ancestry-contextualized
+  evidence per locus, plus PGS000057 (CHD) as a standalone, ancestry-free partial
+  score with explicit coverage gating. Ancestry is contextual only and is never
+  folded into any score or used to infer unmeasured variants. See
+  `docs/step-05-evidence-and-scoring.md`.
 
 ### Step 3 phasing
 

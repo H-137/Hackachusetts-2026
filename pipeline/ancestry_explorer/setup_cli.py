@@ -24,6 +24,7 @@ from .ancestry import (
     parse_msp_to_segments,
     run_rfmix,
 )
+from .composition import compose_by_span
 from .phasing import phase_chromosome, phase_genome
 from .reference import (
     REPO_ROOT,
@@ -154,7 +155,14 @@ def _cmd_ancestry(args: argparse.Namespace) -> int:
 
     seg_out = out_dir / f"segments.chr{args.chrom}.json"
     seg_out.write_text(json.dumps(segments, indent=2), encoding="utf-8")
-    json.dump({"ancestry": summary.as_dict(), "segments_file": str(seg_out)},
+
+    # Span-based per-chromosome composition (explicit denominator; reconciles).
+    comp = compose_by_span(segments, args.chrom).as_dict()
+    comp_out = out_dir / f"composition.chr{args.chrom}.json"
+    comp_out.write_text(json.dumps(comp, indent=2), encoding="utf-8")
+
+    json.dump({"ancestry": summary.as_dict(), "segments_file": str(seg_out),
+               "composition_file": str(comp_out), "composition": comp},
               sys.stdout, indent=2)
     sys.stdout.write("\n")
     return 0

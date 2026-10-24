@@ -98,6 +98,20 @@
       "license": "GENCODE/Ensembl: freely available; verify current terms at https://www.gencodegenes.org",
       "sha256": null
     },
+    "pgs_model": {
+      "id": "PGS000057",
+      "name": "CHD57",
+      "role": "Single published disease-specific scoring model (Step 5). Standalone, ancestry-free coronary-heart-disease weighted sum.",
+      "trait": "Coronary heart disease",
+      "variants_number": 57,
+      "genome_build": "hg19 (GRCh37)",
+      "publication": "Natarajan P et al., Circulation 2017; PMID 28223407; doi 10.1161/CIRCULATIONAHA.116.024436",
+      "url": "https://ftp.ebi.ac.uk/pub/databases/spot/pgs/scores/PGS000057/ScoringFiles/PGS000057.txt.gz",
+      "license": "PGS Catalog / EBI Terms of Use (https://www.ebi.ac.uk/about/terms-of-use/); cite authors.",
+      "ancestry_adjustment": "none",
+      "usage_note": "rsID-keyed; must be resolved to GRCh37 position and strand-reconciled before scoring. Report partial sums over observed markers with explicit coverage; never present a partial sum as the published score; no percentile/absolute risk.",
+      "local_path": "pipeline/reference/assets/pgs/PGS000057.txt.gz"
+    },
     "ancestry_tool_rfmix": {
       "id": "rfmix_2.03",
       "role": "Local ancestry inference (Step 4). Infers per-segment ancestry on phased data against labeled reference populations.",
