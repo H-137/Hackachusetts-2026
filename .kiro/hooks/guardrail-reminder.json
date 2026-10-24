@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Non-diagnostic guardrail reminder",
+      "trigger": "UserPromptSubmit",
+      "description": "Injects the core scientific and privacy guardrails on every prompt so they hold even when guardrails.md drifts out of active context.",
+      "action": {
+        "type": "agent",
+        "prompt": "Reminder: this is a non-diagnostic research prototype. Follow .kiro/steering/guardrails.md — never fabricate ancestry calls, clinical classifications, allele frequencies, or risk values to fill a UI gap; use explicit unavailable/not-assayed/unscorable states. Use \"consider\"/\"confirm\", never diagnostic or treatment language. A no-call or missing variant is never a reassuring negative. Never let raw genotypes/alleles reach logs, analytics, URLs, or transmitted payloads."
+      }
+    }
+  ]
+}

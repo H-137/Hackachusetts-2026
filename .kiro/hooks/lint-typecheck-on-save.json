@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Lint + type-check on TS/TSX save",
+      "trigger": "PostFileSave",
+      "description": "Runs eslint and a TypeScript type-check whenever a .ts/.tsx file is saved, matching the documented verify loop.",
+      "matcher": "\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "export PATH=\"$HOME/.local/node/node-v24.22.1-darwin-arm64/bin:$PATH\"; cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && npm run lint && npx tsc -b --noEmit 2>/dev/null || npx tsc -b",
+        "timeout": 180
+      }
+    }
+  ]
+}

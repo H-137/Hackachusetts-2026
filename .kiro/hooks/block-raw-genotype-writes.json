@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Guard against raw-genotype leaks in writes",
+      "trigger": "PreToolUse",
+      "description": "Prompts a privacy review before file-write tools to prevent raw genotype/allele values from leaking into logs or transmitted payloads.",
+      "matcher": "fs_write|str_replace|fs_append",
+      "action": {
+        "type": "agent",
+        "prompt": "Before this write, check the content against the privacy rules in .kiro/steering/guardrails.md: raw genetic data (alleles, genotypes) must never be written into logs, analytics, error reports, URLs, or any transmitted payload. If this write would place raw genotype/allele values into any of those sinks, stop and use a sanitized, non-identifying summary instead."
+      }
+    }
+  ]
+}
