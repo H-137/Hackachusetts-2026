@@ -70,7 +70,13 @@ export function App() {
     setView({ kind: "landing" });
   }, []);
 
-  const showGlobeBg = view.kind === "explorer" && explorerTab === "chromosomes";
+  // The globe is a patient-facing visual; clinicians get clinical insights
+  // instead. Only render the background globe on the Chromosomes tab in Patient
+  // mode.
+  const showGlobeBg =
+    view.kind === "explorer" &&
+    explorerTab === "chromosomes" &&
+    role === "patient";
 
   // Toggle a body class so CSS can make layout wrappers click-through while the
   // background globe is present (so the open area passes events to the canvas).

@@ -22,7 +22,7 @@ interface Props {
 
 // Vertical layout: position runs top -> bottom. Two copy columns sit side by
 // side; a marker/gene lane runs to their right; a bp ruler runs down the left.
-const SVG_W = 320;
+const SVG_W = 360; // extra right-side room so gene-lane labels never clip
 const TRACK_H = 520; // vertical extent of the chromosome
 const TOP = 24; // headroom for copy labels
 const RULER_W = 44;

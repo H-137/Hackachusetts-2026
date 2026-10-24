@@ -20,6 +20,15 @@ interface Props {
   onSelectVariant: (v: VariantObservation) => void;
 }
 
+/** Compact, readable status labels for the variant cards. */
+const MEAS: Record<string, { text: string; cls: string }> = {
+  observed: { text: "observed", cls: "good" },
+  imputed: { text: "imputed", cls: "warn" },
+  not_assayed: { text: "not assayed", cls: "warn" },
+  no_call: { text: "no call", cls: "warn" },
+  excluded: { text: "excluded", cls: "bad" },
+};
+
 /**
  * Region detail: inferred ancestry on BOTH copies, overlapping gene/conditions,
  * curated evidence, an AI-synthesized research insight, and the globe pointing
@@ -180,23 +189,35 @@ export function RegionDetail({ bundle, region, onSelectVariant }: Props) {
 
           {regionVariants.length > 0 && (
             <>
-              <h4>Variants in this region</h4>
-              <ul className="tight">
-                {regionVariants.map((v) => (
-                  <li key={v.variant_key}>
+              <h4>
+                Variants in this region{" "}
+                <span className="count-pill">{regionVariants.length}</span>
+              </h4>
+              <div className="variant-cards">
+                {regionVariants.map((v) => {
+                  const m = MEAS[v.measurement_status] ?? {
+                    text: v.measurement_status,
+                    cls: "",
+                  };
+                  return (
                     <button
-                      className="linklike"
+                      key={v.variant_key}
+                      className="variant-card"
                       onClick={() => onSelectVariant(v)}
+                      aria-label={`View variant ${v.rsid ?? v.variant_key}`}
                     >
-                      {v.rsid ?? v.variant_key}
-                    </button>{" "}
-                    <span className="subtitle">
-                      pos {toDisplayPosition(v.position_0based).toLocaleString()} ·{" "}
-                      {v.measurement_status}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                      <span className="variant-card-id">
+                        {v.rsid ?? "variant"}
+                      </span>
+                      <span className="variant-card-pos">
+                        chr{v.chromosome}:
+                        {toDisplayPosition(v.position_0based).toLocaleString()}
+                      </span>
+                      <span className={`badge ${m.cls}`}>{m.text}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </>
           )}
         </div>

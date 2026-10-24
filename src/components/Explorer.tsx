@@ -14,6 +14,7 @@ import { Assistant } from "./Assistant";
 import { ChromosomePairMenu } from "./ChromosomePairMenu";
 import { ChromosomeTrack } from "./ChromosomeTrack";
 import { ConditionPage } from "./ConditionPage";
+import { RegionClinicalPanel } from "./RegionClinicalPanel";
 import { RegionDetail } from "./RegionDetail";
 import { VariantDetail } from "./VariantDetail";
 
@@ -136,9 +137,47 @@ export function Explorer({
 
       {tab === "chromosomes" && (
         <section aria-label="Chromosome explorer" className="chrom-tab">
-          <div className="chrom-stage">
+          {/* Region caption moved ABOVE the selection area so it is always
+              visible without scrolling. */}
+          <div className="region-caption-bar">
+            {activeRegionNames.length > 0 ? (
+              <>
+                <span className="globe-caption-lead">
+                  Local ancestry here maps to
+                </span>
+                <div className="region-pills">
+                  {highlighted
+                    .filter((h) => h !== "UNKNOWN")
+                    .map((h) => {
+                      const reg = regionFor(h);
+                      return (
+                        <span
+                          key={h}
+                          className="region-pill"
+                          style={{ borderColor: reg.color }}
+                        >
+                          <span
+                            className="seg-dot"
+                            style={{ background: reg.color }}
+                          />
+                          {reg.name}
+                        </span>
+                      );
+                    })}
+                </div>
+              </>
+            ) : (
+              <span className="subtitle">
+                {role === "patient"
+                  ? "Pick a chromosome, then click a region to map its inferred ancestry onto the globe. Drag the globe to rotate; click to pause or resume its spin."
+                  : "Pick a chromosome, then click a region to see its local-ancestry context and any curated carrier status."}
+              </span>
+            )}
+          </div>
+
+          <div className={`chrom-stage${role === "clinician" ? " clinician" : ""}`}>
             {/* Left: the viewer panel (menu + track + detail), self-scrolling
-                so the page stays a one-pager over the background globe. */}
+                so the page stays a one-pager. */}
             <div className="viewer-panel">
               <div className="viewer-head">
                 <ChromosomePairMenu
@@ -176,60 +215,38 @@ export function Explorer({
                   <span>hatched = uncertain / unknown</span>
                 </div>
 
-                {region ? (
-                  <RegionDetail
-                    bundle={bundle}
-                    region={region}
-                    onSelectVariant={onSelectVariant}
-                  />
-                ) : (
+                {!region && (
                   <p className="subtitle">
                     Click a gene region (blue) or an ancestry segment to inspect
                     it. Click a red marker for variant detail.
                   </p>
                 )}
-              </div>
-            </div>
-
-            {/* Right: open column — the full-page background globe shows
-                through. Only the caption overlays here. */}
-            <div className="globe-stage">
-              <div className="globe-hero-caption">
-                {activeRegionNames.length > 0 ? (
-                  <>
-                    <span className="globe-caption-lead">
-                      Local ancestry here maps to
-                    </span>
-                    <div className="region-pills">
-                      {highlighted
-                        .filter((h) => h !== "UNKNOWN")
-                        .map((h) => {
-                          const reg = regionFor(h);
-                          return (
-                            <span
-                              key={h}
-                              className="region-pill"
-                              style={{ borderColor: reg.color }}
-                            >
-                              <span
-                                className="seg-dot"
-                                style={{ background: reg.color }}
-                              />
-                              {reg.name}
-                            </span>
-                          );
-                        })}
-                    </div>
-                  </>
-                ) : (
-                  <span className="subtitle">
-                    Pick a chromosome, then click a region to map its inferred
-                    ancestry onto the globe. Drag the globe to rotate; click to
-                    pause or resume its spin.
-                  </span>
+                {/* Patient view keeps the rich region detail (with the research
+                    insight) in the left viewer. Clinician view moves region
+                    insights + variants to the right panel to keep this a
+                    one-pager. */}
+                {region && role === "patient" && (
+                  <RegionDetail
+                    bundle={bundle}
+                    region={region}
+                    onSelectVariant={onSelectVariant}
+                  />
                 )}
               </div>
             </div>
+
+            {/* Right column is role-dependent: patients get the background
+                globe (shows through this open column); clinicians get relevant
+                region insights instead of a decorative globe. */}
+            {role === "patient" ? (
+              <div className="globe-stage" aria-hidden="true" />
+            ) : (
+              <RegionClinicalPanel
+                bundle={bundle}
+                region={region}
+                onSelectVariant={onSelectVariant}
+              />
+            )}
           </div>
         </section>
       )}

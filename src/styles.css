@@ -302,11 +302,19 @@ details.methods summary {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.75rem;
+  /* Extra horizontal padding so the left ruler labels and the bottom
+     "of X Mb" label are never clipped; center the track in the panel. */
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: center;
 }
 
 .chrom-track {
   display: block;
+  margin: 0 auto;
+  /* Never shrink below its intrinsic width so labels stay fully rendered;
+     the container scrolls if the panel is narrower. */
+  flex: none;
 }
 
 .region-grid {
@@ -542,9 +550,18 @@ body.has-globe-bg .app > .subtitle {
   grid-template-columns: minmax(380px, 46%) 1fr;
   gap: 1.25rem;
   align-items: stretch;
-  height: calc(100vh - 230px);
-  min-height: 420px;
+  /* Fill the remaining viewport so the page itself does not scroll; the two
+     columns each contain their own overflow internally. */
+  height: calc(100vh - 290px);
+  min-height: 360px;
   padding: 0.25rem 0 0.5rem;
+}
+
+/* Clinician layout has no globe: the right column is an opaque panel that
+   manages its own scroll, keeping the page a one-pager. */
+.chrom-stage.clinician .region-clinical {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Left viewer panel. */
@@ -1297,4 +1314,121 @@ body.has-globe-bg .assistant {
 .explainer summary {
   cursor: pointer;
   font-weight: 600;
+}
+
+/* ---------- Chromosome tab: moved caption + clinician region panel ---------- */
+
+/* Region caption moved above the selection area (always visible, no scroll). */
+.region-caption-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  min-height: 2.4rem;
+  padding: 0.5rem 0.8rem;
+  margin-bottom: 0.75rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.region-caption-bar .globe-caption-lead {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.region-caption-bar .region-pills {
+  margin: 0;
+  justify-content: flex-start;
+}
+
+/* Clinician chromosome layout: viewer + clinical panel (no globe). The clinical
+   panel is opaque and must stay interactive (no globe-background passthrough). */
+.chrom-stage.clinician .region-clinical {
+  pointer-events: auto;
+}
+
+.region-clinical {
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+
+.region-clinical h4 {
+  margin-top: 0;
+}
+
+.region-clinical h5 {
+  margin: 0.9rem 0 0.3rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+/* ---------- Variant cards ("variants in this region") ---------- */
+
+.count-pill {
+  display: inline-block;
+  min-width: 1.4rem;
+  text-align: center;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.variant-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.4rem 0;
+}
+
+.variant-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "id status"
+    "pos status";
+  align-items: center;
+  gap: 0.05rem 0.6rem;
+  width: 100%;
+  text-align: left;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  transition: border-color 0.12s ease, transform 0.08s ease;
+}
+
+.variant-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.variant-card-id {
+  grid-area: id;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.variant-card-pos {
+  grid-area: pos;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.variant-card .badge {
+  grid-area: status;
 }
