@@ -10,7 +10,9 @@ import { loadAnalysisBundle } from "../src/adapters/analysisBundle";
 import {
   AUTOSOME_ORDER,
   chromLength,
+  isCoverageMarker,
   segmentsOverlapping,
+  summarizeWindowCoverage,
   variantsIn,
 } from "../src/domain/explorer";
 import {
@@ -152,5 +154,59 @@ describe("region research pipeline (privacy + no fabricated reassurance)", () =>
     expect(limits).toContain("ancestry");
     expect(limits).toContain("not");
     expect(insight.sources.length).toBeGreaterThan(0);
+  });
+});
+
+describe("window coverage summary (the analytical payoff of zooming)", () => {
+  it("has coverage markers tagged and distinct from curated variants", () => {
+    const coverage = bundle.variants.filter((v) => isCoverageMarker(v));
+    const curated = bundle.variants.filter((v) => !isCoverageMarker(v));
+    expect(coverage.length).toBeGreaterThan(100);
+    expect(curated.length).toBeGreaterThan(0);
+    // Coverage markers carry no disease evidence.
+    for (const c of coverage.slice(0, 50)) {
+      expect(
+        bundle.evidence.some((e) => e.variant_key === c.variant_key),
+      ).toBe(false);
+    }
+  });
+
+  it("reports higher zoom for a narrower window", () => {
+    const full = summarizeWindowCoverage(bundle.variants, "17", 0, chromLength("17"));
+    const narrow = summarizeWindowCoverage(
+      bundle.variants,
+      "17",
+      40_000_000,
+      41_000_000,
+    );
+    expect(narrow.zoom).toBeGreaterThan(full.zoom);
+    expect(full.zoom).toBeCloseTo(1, 1);
+  });
+
+  it("flags an engineered coverage gap as no/sparse coverage", () => {
+    // The generator leaves a deliberate gap across BRCA1 (~41.15–41.33 Mb).
+    const coverageOnly = bundle.variants.filter((v) => isCoverageMarker(v));
+    const inGap = summarizeWindowCoverage(
+      coverageOnly,
+      "17",
+      41_180_000,
+      41_300_000,
+    );
+    // Within the gap there should be essentially no coverage markers.
+    expect(["none", "sparse"]).toContain(inGap.coverage_level);
+    expect(inGap.absence_note.toLowerCase()).toContain("absence");
+  });
+
+  it("never implies absence is reassuring", () => {
+    const anywhere = summarizeWindowCoverage(
+      bundle.variants,
+      "1",
+      0,
+      chromLength("1"),
+    );
+    // The note must always qualify absence, never present it as negative/clear.
+    expect(anywhere.absence_note.toLowerCase()).toMatch(
+      /not a reassuring negative|does not rule out|uninformative/,
+    );
   });
 });

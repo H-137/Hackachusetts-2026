@@ -157,3 +157,117 @@ export function formatBp(bp: number): string {
   if (bp >= 1_000) return `${(bp / 1_000).toFixed(1)} kb`;
   return `${bp} bp`;
 }
+
+/** True for a plain coverage-only marker (establishes assay coverage, no evidence). */
+export function isCoverageMarker(v: VariantObservation): boolean {
+  return v.quality_flags.includes("coverage_only");
+}
+
+/**
+ * Coverage-focused summary of the current zoom window. Deliberately scoped to
+ * LOCAL COVERAGE facts that the genome-wide Overview tab cannot show: marker
+ * density, the largest unmeasured gap, and what that implies for interpreting
+ * absence of a finding here. It intentionally omits ancestry-composition and
+ * assignment-confidence counts, which are the Overview's job.
+ */
+export interface WindowCoverage {
+  chromosome: string;
+  start_0based: number;
+  end_0based_exclusive: number;
+  span_bp: number;
+  /** Zoom factor vs. the full chromosome (1 = whole chromosome). */
+  zoom: number;
+  /** Assayed markers (coverage + curated) with a position in the window. */
+  assayed_markers: number;
+  /** Mean bp between assayed markers in the window (null if <2 markers). */
+  mean_spacing_bp: number | null;
+  /** Largest gap between consecutive assayed markers in the window (bp). */
+  largest_gap_bp: number | null;
+  /** 0–1 density relative to a typical dense array (~1 per 5 kb). */
+  density_fraction: number;
+  /** One of: none | sparse | moderate | dense. */
+  coverage_level: "none" | "sparse" | "moderate" | "dense";
+  /** Plain-language verdict on interpreting absence of a finding here. */
+  absence_note: string;
+}
+
+/** Reference density: a dense consumer array is roughly 1 marker per ~5 kb. */
+const DENSE_ARRAY_SPACING_BP = 5_000;
+
+/**
+ * Summarize COVERAGE in the current zoom window. This is the analytical payoff
+ * of zooming and is intentionally distinct from the whole-genome Overview.
+ */
+export function summarizeWindowCoverage(
+  variants: VariantObservation[],
+  chromosome: string,
+  start_0based: number,
+  end_0based_exclusive: number,
+): WindowCoverage {
+  const span = Math.max(1, end_0based_exclusive - start_0based);
+  const full = GRCH37_AUTOSOME_LENGTHS[chromosome] ?? span;
+
+  const inWindow = variants
+    .filter(
+      (v) =>
+        v.chromosome === chromosome &&
+        v.position_0based >= start_0based &&
+        v.position_0based < end_0based_exclusive,
+    )
+    .sort((a, b) => a.position_0based - b.position_0based);
+
+  let meanSpacing: number | null = null;
+  let largestGap: number | null = null;
+  if (inWindow.length >= 2) {
+    let total = 0;
+    let maxGap = 0;
+    for (let i = 1; i < inWindow.length; i++) {
+      const gap =
+        (inWindow[i]?.position_0based ?? 0) -
+        (inWindow[i - 1]?.position_0based ?? 0);
+      total += gap;
+      if (gap > maxGap) maxGap = gap;
+    }
+    meanSpacing = Math.round(total / (inWindow.length - 1));
+    largestGap = maxGap;
+  }
+
+  const density_fraction =
+    meanSpacing === null
+      ? 0
+      : Math.max(0, Math.min(1, DENSE_ARRAY_SPACING_BP / meanSpacing));
+
+  let coverage_level: WindowCoverage["coverage_level"];
+  let absence_note: string;
+  if (inWindow.length === 0) {
+    coverage_level = "none";
+    absence_note =
+      "No assayed markers here — this region is effectively unmeasured at this resolution, so absence of any finding is uninformative.";
+  } else if (meanSpacing !== null && meanSpacing > 100_000) {
+    coverage_level = "sparse";
+    absence_note =
+      "Sparse coverage: markers are far apart, so most variation between them is unmeasured. Absence of a finding is not a reassuring negative.";
+  } else if (meanSpacing !== null && meanSpacing > 20_000) {
+    coverage_level = "moderate";
+    absence_note =
+      "Moderate coverage: the array samples this region but still skips most positions. Absence does not rule out unmeasured variants.";
+  } else {
+    coverage_level = "dense";
+    absence_note =
+      "Denser coverage here, but a consumer array measures only genotyped positions. Absence still does not rule out unmeasured variants.";
+  }
+
+  return {
+    chromosome,
+    start_0based,
+    end_0based_exclusive,
+    span_bp: span,
+    zoom: full / span,
+    assayed_markers: inWindow.length,
+    mean_spacing_bp: meanSpacing,
+    largest_gap_bp: largestGap,
+    density_fraction,
+    coverage_level,
+    absence_note,
+  };
+}

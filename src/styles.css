@@ -481,123 +481,327 @@ ul.tight li {
 
 /* ---------- Chromosomes tab: hero globe + chip selector ---------- */
 
+/* Full-page background globe canvas. Fixed behind all content; the globe is
+   shifted toward the right so page content overlays the left side. The canvas
+   receives pointer events so you can drag to rotate and click to toggle spin;
+   the app content above it is made click-through EXCEPT on real UI surfaces
+   (see .app pointer-events rules), so the open area passes events to the globe. */
+.globe-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  /* Shift the sphere to the right so page content overlays the left side. */
+  transform: translateX(22%);
+}
+
+/* The globe's own DOM subtree (canvas + the scene container react-globe.gl
+   wraps it in) must receive pointer events for OrbitControls drag + click. */
+.globe-bg,
+.globe-bg > div,
+.globe-bg canvas {
+  pointer-events: auto;
+}
+
+/* App content sits above the background globe. The wrapper itself is
+   click-through so empty areas pass drags/clicks down to the globe canvas;
+   actual interactive surfaces re-enable pointer events below. */
+.app {
+  position: relative;
+  z-index: 1;
+}
+
+/* When the globe background is present, make layout wrappers click-through and
+   only re-enable events on the surfaces the user actually interacts with. */
+body.has-globe-bg .app,
+body.has-globe-bg .explorer,
+body.has-globe-bg .chrom-tab,
+body.has-globe-bg .chrom-stage,
+body.has-globe-bg .globe-stage {
+  pointer-events: none;
+}
+
+body.has-globe-bg .tabs,
+body.has-globe-bg .viewer-panel,
+body.has-globe-bg .globe-hero-caption,
+body.has-globe-bg .drawer,
+body.has-globe-bg .disclaimer,
+body.has-globe-bg h1,
+body.has-globe-bg .app > .subtitle {
+  pointer-events: auto;
+}
+
 .chrom-tab {
   display: block;
 }
 
-.globe-hero {
+/* One-pager: viewer panel (left) | open globe column (right). Height is capped
+   to the viewport so the page itself does not scroll with the globe involved;
+   the viewer panel scrolls internally instead. */
+.chrom-stage {
+  display: grid;
+  grid-template-columns: minmax(380px, 46%) 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+  height: calc(100vh - 230px);
+  min-height: 420px;
+  padding: 0.25rem 0 0.5rem;
+}
+
+/* Left viewer panel. */
+.viewer-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: rgba(26, 32, 41, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(34, 43, 54, 0.9);
+}
+
+.viewer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem 0.8rem 1rem;
+}
+
+/* ---------- Chromosome-pair menu ---------- */
+
+.pair-menu {
+  position: relative;
+}
+
+.pair-menu-trigger {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  font-weight: 600;
+}
+
+.pair-menu-trigger:hover {
+  border-color: var(--accent);
+}
+
+.pair-menu-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.pair-menu-value {
+  font-size: 1rem;
+}
+
+.pair-menu-caret {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.pair-menu-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  max-height: 56vh;
+  overflow-y: auto;
+  padding: 0.3rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.pair-opt {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.pair-opt:hover {
+  background: var(--panel-2);
+}
+
+.pair-opt.active {
+  background: var(--accent);
+  color: #06121d;
+}
+
+.pair-opt-num {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.pair-opt-len {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pair-opt.active .pair-opt-len {
+  color: #06121d;
+}
+
+/* Left: vertical chromosome selector as a mini karyotype. */
+.chrom-rail {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chrom-rail-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 0 0.25rem 0.4rem;
+}
+
+.chrom-rail-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+  align-content: start;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.chrom-bar {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 0 1.25rem;
-  background:
-    radial-gradient(
-      ellipse 60% 70% at 50% 35%,
-      rgba(74, 139, 225, 0.12),
-      transparent 70%
-    );
-  border-radius: 12px;
-  margin-bottom: 1rem;
-}
-
-.globe-hero .globe-wrap {
-  margin: 0 auto;
-}
-
-/* The hero globe owns its caption styling; hide the small inline one. */
-.globe-hero .globe-caption {
-  display: none;
-}
-
-.globe-hero-loading {
-  width: 420px;
-  height: 420px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  padding: 0.4rem 0.15rem 0.3rem;
+  background: transparent;
   color: var(--muted);
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 34%, #1e4a73, #0d2435);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease,
+    transform 0.08s ease;
 }
 
+.chrom-bar:hover {
+  background: var(--panel-2);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.chrom-bar.active {
+  background: var(--panel-2);
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 2px 10px rgba(75, 159, 225, 0.25);
+}
+
+.chromo-icon {
+  display: block;
+}
+
+.chrom-bar-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Right: globe stage. */
+.globe-stage {
+  /* Open column: the background globe shows through here. Only the caption
+     overlays, anchored at the bottom so it does not block the globe. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  min-width: 0;
+  pointer-events: none; /* clicks pass through to the globe canvas behind */
+}
+
+/* The caption is the only interactive overlay in this column. */
 .globe-hero-caption {
+  pointer-events: auto;
   text-align: center;
-  min-height: 2.2rem;
+  min-height: 2.6rem;
+  background: rgba(15, 20, 25, 0.55);
+  backdrop-filter: blur(3px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+}
+
+.globe-caption-lead {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .region-pills {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.4rem;
-  margin-top: 0.35rem;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
 }
 
 .region-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   border: 1px solid var(--border);
   border-left-width: 3px;
   border-radius: 999px;
-  padding: 0.25rem 0.7rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  background: var(--panel);
-}
-
-.chrom-picker {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
-  gap: 0.4rem;
-  margin: 0.25rem 0 1rem;
-}
-
-.chrom-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding: 0.4rem 0;
-  background: var(--panel);
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-weight: 700;
-  transition:
-    transform 0.08s ease,
-    border-color 0.12s ease,
-    color 0.12s ease,
-    background 0.12s ease;
-}
-
-.chrom-chip:hover {
-  transform: translateY(-1px);
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.chrom-chip.active {
-  background: linear-gradient(180deg, var(--accent), #2f7fc0);
-  color: #06121d;
-  border-color: var(--accent);
-  box-shadow: 0 2px 10px rgba(75, 159, 225, 0.35);
-}
-
-.chrom-chip-num {
+  padding: 0.35rem 0.85rem;
   font-size: 1rem;
-  line-height: 1;
+  font-weight: 600;
+  background: var(--panel);
 }
 
-.chrom-chip-label {
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  opacity: 0.75;
-  font-weight: 600;
+@media (max-width: 760px) {
+  .chrom-stage {
+    grid-template-columns: 1fr;
+  }
+  .chrom-rail-list {
+    grid-template-columns: repeat(6, 1fr);
+    max-height: none;
+  }
 }
 
 .chrom-viewbar {
@@ -626,9 +830,126 @@ ul.tight li {
   display: block;
 }
 
-@media (max-width: 520px) {
-  .globe-hero-loading {
-    width: 300px;
-    height: 300px;
-  }
+/* ---------- Zoom controls ---------- */
+
+.zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.15rem 0.3rem;
+}
+
+.icon-btn {
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 5px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: var(--panel);
+  color: var(--accent);
+}
+
+.zoom-slider {
+  width: 120px;
+  accent-color: var(--accent);
+}
+
+.zoom-level {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 0.85rem;
+  min-width: 2.6rem;
+  text-align: right;
+}
+
+/* ---------- Coverage strip (zoom window) ---------- */
+
+.coverage-strip {
+  margin-top: 0.75rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+}
+
+.cov-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cov-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.cov-eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.cov-meter {
+  margin: 0.5rem 0 0.4rem;
+  height: 8px;
+  width: 100%;
+  background: var(--panel-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.cov-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.cov-meter-fill.none {
+  background: var(--bad);
+}
+.cov-meter-fill.sparse {
+  background: var(--warn);
+}
+.cov-meter-fill.moderate {
+  background: #d4a72c;
+}
+.cov-meter-fill.dense {
+  background: var(--good);
+}
+
+.cov-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.cov-facts strong {
+  color: var(--text);
+}
+
+.cov-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
