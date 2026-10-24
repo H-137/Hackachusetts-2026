@@ -53,12 +53,38 @@
       "sha256": null
     },
     "genetic_map": {
-      "id": "genetic_map_GRCh37",
-      "role": "Recombination map for the phasing tool (consumed in Step 3). Pinned now for provenance.",
-      "note": "Exact source pinned when Step 3 selects the phasing tool (Beagle/SHAPEIT bundle its own compatible map). Placeholder recorded here to keep the manifest complete.",
-      "url": null,
-      "license": null,
-      "sha256": null
+      "id": "plink_GRCh37_beagle",
+      "role": "Recombination map (cM) for Beagle phasing (Step 3).",
+      "url": "https://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh37.map.zip",
+      "format": "PLINK .map, cM units, per-chromosome files named plink.chr{N}.GRCh37.map",
+      "chromosome_naming": "no 'chr' prefix",
+      "approx_size": "~24 MB zip (23913120 bytes observed)",
+      "license": "Distributed with Beagle; HapMap-derived recombination maps.",
+      "sha256": "8e88141345844571bc63efac6c043ee29e8ca41f26087dc51b7f1918943a077b",
+      "local_dir": "pipeline/reference/assets/genetic_maps"
+    },
+    "phasing_tool_beagle": {
+      "id": "beagle_5.5",
+      "role": "Statistical phasing tool (Step 3). Reference-assisted single-sample phasing.",
+      "version_string": "27Feb25.75f",
+      "url": "https://faculty.washington.edu/browning/beagle/beagle.27Feb25.75f.jar",
+      "approx_size": "~317 KB (316844 bytes observed)",
+      "runtime": "Java (JRE 8+). Developed against Temurin OpenJDK 21.",
+      "license": "GNU GPL v3",
+      "family_aware_note": "Beagle 5.x does NOT model parent-offspring relationships (dropped after Beagle 4.0). The family-aware path is implemented as an explicit Mendelian-consistency layer on top of Beagle single-sample phasing, rather than relying on trio phasing inside the tool.",
+      "sha256": "7319f4af9638be05c18dcc1bfb8fb41a58a09293507ebf0d54617d0e40df5a70",
+      "local_path": "pipeline/reference/assets/tools/beagle.27Feb25.75f.jar"
+    },
+    "conform_gt": {
+      "id": "conform_gt",
+      "role": "Aligns sample VCF alleles/positions to a reference VCF before phasing (Step 3).",
+      "version_string": "24May16.cee",
+      "url": "https://faculty.washington.edu/browning/conform-gt/conform-gt.24May16.cee.jar",
+      "approx_size": "~119 KB (118655 bytes observed)",
+      "runtime": "Java",
+      "license": "See Beagle utilities licensing.",
+      "sha256": "87728763085e198fbb274f319d3855b106e3939b3d1a5e3fb8373a50465371a6",
+      "local_path": "pipeline/reference/assets/tools/conform-gt.24May16.cee.jar"
     },
     "gene_annotation": {
       "id": "gencode_grch37",

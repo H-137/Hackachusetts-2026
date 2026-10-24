@@ -20,6 +20,24 @@ chromosome explorer.
   command, and harmonization of parsed records into a sorted, indexed,
   reference-validated VCF. Validated on a real chr22 slice. See
   `docs/step-02-harmonization.md`.
+- Step 3 — statistical phasing with Beagle 5.5 (single-sample, reference
+  assisted) plus an explicit family-aware Mendelian-consistency layer. Validated
+  on a real chr22 window. See `docs/step-03-phasing.md`.
+
+### Step 3 phasing
+
+Requires Java (JRE 8+). `setup --mode phasing` downloads Beagle, conform-gt, and
+the GRCh37 genetic maps.
+
+```sh
+cd pipeline
+PYTHONPATH=. python3 -m ancestry_explorer.setup_cli setup --mode phasing
+# Phase one chromosome of a harmonized VCF against a panel for that chromosome:
+PYTHONPATH=. python3 -m ancestry_explorer.setup_cli phase \
+  --gt local-out/sample.chr22.vcf.gz \
+  --panel reference/assets/panel/panel.chr22.<window>.vcf.gz \
+  --chrom 22 --out local-out/phased.chr22
+```
 
 ### Step 2 reference setup and harmonization
 

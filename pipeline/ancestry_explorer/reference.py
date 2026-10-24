@@ -21,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import ssl
 import subprocess
 import sys
 import urllib.request
@@ -84,12 +85,28 @@ def sha256_file(path: Path, chunk: int = 1 << 20) -> str:
     return h.hexdigest()
 
 
+def _ssl_context() -> "ssl.SSLContext":
+    """Build an SSL context with a verified CA bundle.
+
+    Some Python installs (e.g. pyenv) lack a wired-up system CA bundle, so
+    HTTPS verification fails for hosts whose roots are not otherwise available.
+    Prefer certifi's bundle when present; fall back to the system default.
+    Verification is always on; we never disable certificate checking.
+    """
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
 def _download(url: str, dest: Path) -> None:
     """Stream a public asset to disk. No request body, no sample data."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
     req = urllib.request.Request(url, method="GET")
-    with urllib.request.urlopen(req, timeout=120) as resp, open(tmp, "wb") as out:
+    with urllib.request.urlopen(req, timeout=120, context=_ssl_context()) as resp, open(tmp, "wb") as out:
         shutil.copyfileobj(resp, out, length=1 << 20)
     tmp.replace(dest)
 
@@ -243,9 +260,51 @@ def run_setup(mode: str) -> dict:
         report = setup_slice(manifest)
     elif mode == "full":
         report = setup_full(manifest)
+    elif mode == "phasing":
+        report = setup_phasing(manifest)
     else:
         raise ValueError(f"Unknown mode: {mode}")
 
     save_manifest(manifest)
     report["toolchain"] = {t.name: t.version for t in tools}
+    return report
+
+
+def setup_phasing(manifest: dict) -> dict:
+    """Fetch the Beagle phasing tool, conform-gt, and the GRCh37 genetic maps."""
+    import zipfile
+
+    assets = manifest["assets"]
+    report: dict = {"mode": "phasing", "steps": []}
+
+    # 1. Beagle + conform-gt JARs.
+    for key in ("phasing_tool_beagle", "conform_gt"):
+        entry = assets[key]
+        local = REPO_ROOT / entry["local_path"]
+        if local.exists():
+            report["steps"].append({"asset": entry["id"], "checksum": "cached", "path": str(local)})
+            continue
+        _download(entry["url"], local)
+        status = _verify_or_record(entry, "sha256", local)
+        report["steps"].append({"asset": entry["id"], "checksum": status, "path": str(local)})
+
+    # 2. Genetic maps zip -> extract per-chromosome PLINK maps.
+    gm = assets["genetic_map"]
+    gm_dir = REPO_ROOT / gm["local_dir"]
+    gm_dir.mkdir(parents=True, exist_ok=True)
+    marker = gm_dir / "plink.chr22.GRCh37.map"
+    if not marker.exists():
+        zip_tmp = gm_dir / "plink.GRCh37.map.zip"
+        _download(gm["url"], zip_tmp)
+        status = _verify_or_record(gm, "sha256", zip_tmp)
+        with zipfile.ZipFile(zip_tmp) as zf:
+            zf.extractall(gm_dir)
+        zip_tmp.unlink(missing_ok=True)
+        report["steps"].append({"asset": gm["id"], "checksum": status, "path": str(gm_dir)})
+    else:
+        report["steps"].append({"asset": gm["id"], "checksum": "cached", "path": str(gm_dir)})
+
+    report["beagle_jar"] = str(REPO_ROOT / assets["phasing_tool_beagle"]["local_path"])
+    report["conform_gt_jar"] = str(REPO_ROOT / assets["conform_gt"]["local_path"])
+    report["genetic_map_dir"] = str(gm_dir)
     return report

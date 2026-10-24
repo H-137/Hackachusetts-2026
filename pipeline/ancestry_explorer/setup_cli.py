@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .harmonize import harmonize
 from .parser import parse_ancestrydna
+from .phasing import phase_chromosome
 from .reference import (
     REPO_ROOT,
     SLICE_CHROM,
@@ -74,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("setup", help="Download and verify reference assets.")
-    sp.add_argument("--mode", choices=["slice", "full"], default="slice")
+    sp.add_argument("--mode", choices=["slice", "full", "phasing"], default="slice")
     sp.set_defaults(func=_cmd_setup)
 
     hp = sub.add_parser("harmonize", help="Harmonize an AncestryDNA file into a VCF.")
@@ -85,8 +86,39 @@ def main(argv: list[str] | None = None) -> int:
                     help="Use the single-chromosome slice reference and window.")
     hp.set_defaults(func=_cmd_harmonize)
 
+    pp = sub.add_parser("phase", help="Phase one chromosome of a harmonized VCF with Beagle.")
+    pp.add_argument("--gt", required=True, help="Harmonized sample .vcf.gz.")
+    pp.add_argument("--panel", required=True, help="Reference panel .vcf.gz for the chromosome.")
+    pp.add_argument("--chrom", required=True, help="Chromosome (e.g. 22).")
+    pp.add_argument("--out", required=True, help="Output prefix for phased VCF.")
+    pp.set_defaults(func=_cmd_phase)
+
     args = ap.parse_args(argv)
     return args.func(args)
+
+
+def _cmd_phase(args: argparse.Namespace) -> int:
+    manifest = load_manifest()
+    beagle = REPO_ROOT / manifest["assets"]["phasing_tool_beagle"]["local_path"]
+    conform = REPO_ROOT / manifest["assets"]["conform_gt"]["local_path"]
+    gm = REPO_ROOT / manifest["assets"]["genetic_map"]["local_dir"] / f"plink.chr{args.chrom}.GRCh37.map"
+    for p, what in [(beagle, "Beagle jar"), (gm, "genetic map")]:
+        if not p.exists():
+            print(f"{what} not found at {p}. Run `setup --mode phasing` first.", file=sys.stderr)
+            return 2
+
+    res = phase_chromosome(
+        sample_vcf_gz=Path(args.gt),
+        panel_vcf_gz=Path(args.panel),
+        genetic_map=gm,
+        chromosome=args.chrom,
+        out_prefix=Path(args.out),
+        beagle_jar=beagle,
+        conform_gt_jar=conform,
+    )
+    json.dump({"phasing": res.as_dict()}, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0 if res.allele_counts_preserved else 4
 
 
 if __name__ == "__main__":
