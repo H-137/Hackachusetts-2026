@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run vitest after spec task",
+      "trigger": "PostTaskExec",
+      "description": "Runs the vitest suite after any spec task is marked complete, matching the \"run after every change\" convention.",
+      "action": {
+        "type": "command",
+        "command": "export PATH=\"$HOME/.local/node/node-v24.22.1-darwin-arm64/bin:$PATH\"; cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && npm test",
+        "timeout": 300
+      }
+    }
+  ]
+}
