@@ -1165,6 +1165,37 @@ body.has-globe-bg .assistant {
   flex-wrap: wrap;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.report-btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+}
+
+.report-btn:hover {
+  background: var(--accent);
+  color: #06121d;
+}
+
+.report-btn.secondary-report {
+  border-color: var(--border);
+}
+
+.report-btn.secondary-report:hover {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
 .role-toggle {
   display: inline-flex;
   background: var(--panel);
