@@ -1,13 +1,10 @@
 import { useMemo } from "react";
 import type { AnalysisBundle, SelectedRegion } from "../domain/explorer";
-import {
-  segmentsOverlapping,
-  toDisplayPosition,
-  variantsIn,
-} from "../domain/explorer";
+import { segmentsOverlapping, variantsIn } from "../domain/explorer";
 import { carrierStatuses } from "../domain/clinical";
 import { regionFor } from "../domain/geography";
 import type { VariantObservation } from "../domain/types";
+import { LollipopChart } from "./LollipopChart";
 
 interface Props {
   bundle: AnalysisBundle;
@@ -15,14 +12,7 @@ interface Props {
   onSelectVariant: (v: VariantObservation) => void;
 }
 
-/** Compact, readable status labels for the variant cards. */
-const MEAS: Record<string, { text: string; cls: string }> = {
-  observed: { text: "observed", cls: "good" },
-  imputed: { text: "imputed", cls: "warn" },
-  not_assayed: { text: "not assayed", cls: "warn" },
-  no_call: { text: "no call", cls: "warn" },
-  excluded: { text: "excluded", cls: "bad" },
-};
+
 
 /**
  * Clinician-facing side panel for the Chromosome View (replaces the globe for
@@ -163,33 +153,11 @@ export function RegionClinicalPanel({ bundle, region, onSelectVariant }: Props) 
           <span className="count-pill">{regionVariants.length}</span>
         )}
       </h5>
-      {regionVariants.length === 0 ? (
-        <p className="subtitle">No variants fall in this region.</p>
-      ) : (
-        <div className="variant-cards">
-          {regionVariants.map((v) => {
-            const m = MEAS[v.measurement_status] ?? {
-              text: v.measurement_status,
-              cls: "",
-            };
-            return (
-              <button
-                key={v.variant_key}
-                className="variant-card"
-                onClick={() => onSelectVariant(v)}
-                aria-label={`View variant ${v.rsid ?? v.variant_key}`}
-              >
-                <span className="variant-card-id">{v.rsid ?? "variant"}</span>
-                <span className="variant-card-pos">
-                  chr{v.chromosome}:
-                  {toDisplayPosition(v.position_0based).toLocaleString()}
-                </span>
-                <span className={`badge ${m.cls}`}>{m.text}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <LollipopChart
+        bundle={bundle}
+        region={region}
+        onSelectVariant={onSelectVariant}
+      />
     </aside>
   );
 }

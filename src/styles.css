@@ -557,6 +557,12 @@ body.has-globe-bg .app > .subtitle {
   padding: 0.25rem 0 0.5rem;
 }
 
+/* Clinician layout: the horizontal track reads better with a wider left viewer
+   and the lollipop panel beside it. */
+.chrom-stage.clinician {
+  grid-template-columns: minmax(420px, 52%) 1fr;
+}
+
 /* Clinician layout has no globe: the right column is an opaque panel that
    manages its own scroll, keeping the page a one-pager. */
 .chrom-stage.clinician .region-clinical {
@@ -1506,4 +1512,65 @@ ul.tight {
 ul.tight li {
   margin: 0.15rem 0;
   word-break: break-word;
+}
+
+/* ---------- Lollipop chart (clinician region variants) ---------- */
+
+.lollipop {
+  margin-top: 0.4rem;
+}
+
+.lollipop-svg {
+  display: block;
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.lollipop-g:focus {
+  outline: none;
+}
+
+.lollipop-g circle {
+  transition: r 0.1s ease;
+}
+
+.lollipop-detail {
+  margin-top: 0.5rem;
+  min-height: 2.4rem;
+  font-size: 0.9rem;
+}
+
+.lollipop-detail .badge {
+  border: 1px solid var(--border);
+  background: transparent;
+}
+
+.lollipop-detail .linklike {
+  display: inline-block;
+  margin-top: 0.2rem;
+}
+
+.lollipop-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.lollipop-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.lollipop-empty {
+  margin-top: 0.4rem;
+  padding: 0.75rem;
+  background: var(--panel-2);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
 }
