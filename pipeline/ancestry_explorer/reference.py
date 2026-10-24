@@ -308,3 +308,37 @@ def setup_phasing(manifest: dict) -> dict:
     report["conform_gt_jar"] = str(REPO_ROOT / assets["conform_gt"]["local_path"])
     report["genetic_map_dir"] = str(gm_dir)
     return report
+
+
+def download_panel_chromosomes(chroms: list[str]) -> dict:
+    """Download FULL per-chromosome 1000G Phase 3 panels for the given chroms.
+
+    Each file is large (hundreds of MB to >1 GB). Downloaded once and cached;
+    re-runs skip chromosomes already present. Checksums are recorded per
+    chromosome in the manifest. No sample data is transmitted.
+    """
+    manifest = load_manifest()
+    panel = manifest["assets"]["phased_panel"]
+    panel_dir = REPO_ROOT / panel["local_dir"]
+    panel_dir.mkdir(parents=True, exist_ok=True)
+    panel.setdefault("sha256_by_chrom", {})
+
+    report: dict = {"mode": "panel_full", "chroms": chroms, "steps": []}
+    for chrom in chroms:
+        url = panel["url_template"].format(chrom=chrom)
+        dest = panel_dir / f"ALL.chr{chrom}.phase3.genotypes.vcf.gz"
+        if dest.exists():
+            report["steps"].append({"chrom": chrom, "status": "cached", "path": str(dest)})
+        else:
+            _download(url, dest)
+            digest = sha256_file(dest)
+            panel["sha256_by_chrom"][chrom] = digest
+            report["steps"].append({"chrom": chrom, "status": "downloaded",
+                                    "sha256": digest[:12], "path": str(dest)})
+        # Ensure a tabix index exists for downstream region queries / Beagle.
+        tbi = dest.with_suffix(dest.suffix + ".tbi")
+        if not tbi.exists():
+            subprocess.run(["tabix", "-f", "-p", "vcf", str(dest)], check=False)
+
+    save_manifest(manifest)
+    return report

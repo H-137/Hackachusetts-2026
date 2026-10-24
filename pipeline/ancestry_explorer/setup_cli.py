@@ -18,12 +18,13 @@ from pathlib import Path
 
 from .harmonize import harmonize
 from .parser import parse_ancestrydna
-from .phasing import phase_chromosome
+from .phasing import phase_chromosome, phase_genome
 from .reference import (
     REPO_ROOT,
     SLICE_CHROM,
     SLICE_END,
     SLICE_START,
+    download_panel_chromosomes,
     load_manifest,
     run_setup,
 )
@@ -86,6 +87,11 @@ def main(argv: list[str] | None = None) -> int:
                     help="Use the single-chromosome slice reference and window.")
     hp.set_defaults(func=_cmd_harmonize)
 
+    dp = sub.add_parser("download-panel", help="Download full per-chromosome 1000G panels.")
+    dp.add_argument("--chroms", required=True,
+                    help="Comma-separated chromosomes, e.g. 20,21,22.")
+    dp.set_defaults(func=_cmd_download_panel)
+
     pp = sub.add_parser("phase", help="Phase one chromosome of a harmonized VCF with Beagle.")
     pp.add_argument("--gt", required=True, help="Harmonized sample .vcf.gz.")
     pp.add_argument("--panel", required=True, help="Reference panel .vcf.gz for the chromosome.")
@@ -93,8 +99,44 @@ def main(argv: list[str] | None = None) -> int:
     pp.add_argument("--out", required=True, help="Output prefix for phased VCF.")
     pp.set_defaults(func=_cmd_phase)
 
+    gp = sub.add_parser("phase-genome", help="Phase several chromosomes against full panels.")
+    gp.add_argument("--gt", required=True, help="Harmonized sample .vcf.gz (genome-wide).")
+    gp.add_argument("--chroms", required=True, help="Comma-separated chromosomes, e.g. 20,21,22.")
+    gp.add_argument("--out-dir", required=True, help="Output directory for phased VCFs.")
+    gp.set_defaults(func=_cmd_phase_genome)
+
     args = ap.parse_args(argv)
     return args.func(args)
+
+
+def _cmd_phase_genome(args: argparse.Namespace) -> int:
+    manifest = load_manifest()
+    beagle = REPO_ROOT / manifest["assets"]["phasing_tool_beagle"]["local_path"]
+    conform = REPO_ROOT / manifest["assets"]["conform_gt"]["local_path"]
+    panel_dir = REPO_ROOT / manifest["assets"]["phased_panel"]["local_dir"]
+    gm_dir = REPO_ROOT / manifest["assets"]["genetic_map"]["local_dir"]
+    chroms = [c.strip() for c in args.chroms.split(",") if c.strip()]
+
+    report = phase_genome(
+        sample_vcf_gz=Path(args.gt),
+        chromosomes=chroms,
+        panel_dir=panel_dir,
+        genetic_map_dir=gm_dir,
+        out_dir=Path(args.out_dir),
+        beagle_jar=beagle,
+        conform_gt_jar=conform,
+    )
+    json.dump({"phase_genome": report}, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0 if report["all_allele_counts_preserved"] else 4
+
+
+def _cmd_download_panel(args: argparse.Namespace) -> int:
+    chroms = [c.strip() for c in args.chroms.split(",") if c.strip()]
+    report = download_panel_chromosomes(chroms)
+    json.dump(report, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+    return 0
 
 
 def _cmd_phase(args: argparse.Namespace) -> int:

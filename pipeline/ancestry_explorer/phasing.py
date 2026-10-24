@@ -204,3 +204,69 @@ def phase_chromosome(
                     "ref_assisted": True},
         warnings=warnings,
     )
+
+
+def phase_genome(
+    sample_vcf_gz: Path,
+    chromosomes: list[str],
+    panel_dir: Path,
+    genetic_map_dir: Path,
+    out_dir: Path,
+    beagle_jar: Path,
+    conform_gt_jar: Path,
+    panel_filename: str = "ALL.chr{chrom}.phase3.genotypes.vcf.gz",
+    beagle_version: str = "5.5",
+    seed: int = 42,
+) -> dict:
+    """Phase several chromosomes of a harmonized sample VCF against full panels.
+
+    For each chromosome it extracts the sample's records, phases against the
+    per-chromosome panel using that chromosome's genetic map, and verifies allele
+    counts are preserved. Returns an aggregate report (counts only; no genotype
+    values) plus the list of per-chromosome phased VCF paths.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    per_chrom: list[dict] = []
+    phased_vcfs: list[str] = []
+    all_preserved = True
+
+    for chrom in chromosomes:
+        panel = panel_dir / panel_filename.format(chrom=chrom)
+        gmap = genetic_map_dir / f"plink.chr{chrom}.GRCh37.map"
+        if not panel.exists():
+            per_chrom.append({"chromosome": chrom, "status": "panel_missing",
+                              "panel": str(panel)})
+            continue
+        if not gmap.exists():
+            per_chrom.append({"chromosome": chrom, "status": "map_missing",
+                              "map": str(gmap)})
+            continue
+
+        # Extract this chromosome from the sample VCF.
+        chrom_vcf = out_dir / f"sample.chr{chrom}.vcf.gz"
+        _run(["bcftools", "view", "-r", chrom, "-Oz", "-o", str(chrom_vcf), str(sample_vcf_gz)])
+        _run(["tabix", "-f", "-p", "vcf", str(chrom_vcf)])
+
+        res = phase_chromosome(
+            sample_vcf_gz=chrom_vcf,
+            panel_vcf_gz=panel,
+            genetic_map=gmap,
+            chromosome=chrom,
+            out_prefix=out_dir / f"phased.chr{chrom}",
+            beagle_jar=beagle_jar,
+            conform_gt_jar=conform_gt_jar,
+            beagle_version=beagle_version,
+            seed=seed,
+        )
+        per_chrom.append(res.as_dict())
+        phased_vcfs.append(res.phased_vcf)
+        all_preserved = all_preserved and res.allele_counts_preserved
+
+    return {
+        "chromosomes_requested": chromosomes,
+        "chromosomes_phased": [r["chromosome"] for r in per_chrom
+                               if r.get("phased_markers")],
+        "all_allele_counts_preserved": all_preserved,
+        "per_chromosome": per_chrom,
+        "phased_vcfs": phased_vcfs,
+    }

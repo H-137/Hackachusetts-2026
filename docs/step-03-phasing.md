@@ -92,11 +92,37 @@ composes with harmonized/phased VCFs without assuming REF/ALT order.
 - Phased VCFs and all phasing assets (Beagle jar, maps, panel) live under
   gitignored paths.
 
+## Multi-chromosome phasing on full panels
+
+Beyond the initial chr22 window, the pipeline phases whole chromosomes against
+the FULL per-chromosome 1000G Phase 3 panels. The panels are large (chr20
+327 MB, chr21 210 MB, chr22 206 MB; chr1/2 exceed 1 GB each), so they are
+downloaded on demand:
+
+```sh
+# Download full panels for specific chromosomes (checksums recorded per chrom):
+PYTHONPATH=. python3 -m ancestry_explorer.setup_cli download-panel --chroms 20,21,22
+# Phase those chromosomes of the harmonized genome against the full panels:
+PYTHONPATH=. python3 -m ancestry_explorer.setup_cli phase-genome \
+  --gt local-out/sample.full.vcf.gz --chroms 20,21,22 --out-dir local-out/phased
+```
+
+Real run on chr20/21/22 of the full harmonized genome (44 s wall, multi-threaded
+Beagle):
+
+| Chr | input | phasable | phased | allele counts preserved |
+| --- | --- | --- | --- | --- |
+| 20 | 17,952 | 8,892 | 8,804 | yes |
+| 21 | 10,085 | 5,009 | 4,969 | yes |
+| 22 | 10,869 | 5,061 | 4,999 | yes |
+
+Every output genotype is phased (`|` separator). The full 22-chromosome run is
+the same command with all autosomes, gated on the ~12-15 GB panel download.
+
 ## Scope and open items
 
-- Real phasing was validated on the chr22 window (consistent with approach B).
-  Full-genome phasing needs the full per-chromosome 1000G panels (tens of GB),
-  left as an on-demand download. The `setup --mode phasing` command fetches the
-  tool and maps; panel chromosomes are fetched as needed.
+- Real phasing is validated on chr20/21/22 against full panels, plus the earlier
+  chr22 window. The remaining autosomes are a documented on-demand download
+  (chr1/chr2 panels alone are >1 GB each; the full set is ~12-15 GB).
 - Phase-switch error can flip copy identity along a chromosome; this is recorded
   as a known limitation and matters for how Step 4 interprets segment copies.

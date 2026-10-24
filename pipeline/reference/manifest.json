@@ -42,7 +42,11 @@
       "chromosome_naming": "no 'chr' prefix",
       "note": "GRCh37 low-coverage Phase 3 call set. Distinct from the GRCh38 high-coverage NYGC 3202 release. Per-chromosome files; the slice validation downloads a single chromosome.",
       "license": "1000 Genomes Project open data. Verify current terms.",
-      "sha256_by_chrom": {},
+      "sha256_by_chrom": {
+        "20": "1bbddc1eac3b35d9408bdfb435632126614a7ac89d32d27aa30db6dc94600fec",
+        "21": "1942e0709625d77928b191e5a1bfbf523aad2fee1764994a599ae4623305cace",
+        "22": "a90c16c4ff2b3196476d506ae13cb3047fae8670163c7c932c4b0239aef3daf5"
+      },
       "local_dir": "pipeline/reference/assets/panel"
     },
     "variant_sites": {
