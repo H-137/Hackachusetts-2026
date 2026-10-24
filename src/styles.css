@@ -1965,7 +1965,11 @@ ul.tight li {
 
 /* ---------- Patient chromosome tab: small chromosome | region info ---------- */
 
-/* Two thin windows (chromosome | region info) then an open globe column. */
+/* Two thin windows (chromosome | region info) then an open globe column.
+   Each window sizes to its own content (align-items: start) and scrolls
+   internally if it exceeds the viewport cap. The vertical chromosome track is
+   sized (V_TRACK_H in ChromosomeTrack.tsx) so the chromosome window's height
+   lands close to the region-info window beside it. */
 .chrom-stage.patient-stage {
   display: grid;
   grid-template-columns: minmax(230px, 290px) minmax(230px, 310px) 1fr;
@@ -1973,17 +1977,13 @@ ul.tight li {
   /* Cap to the viewport so the tab never scrolls the page. */
   height: calc(100vh - 230px);
   max-height: calc(100vh - 230px);
-  /* Stretch both windows to a shared row height so the chromosome window
-     matches the region-info window instead of running taller. The taller
-     content (the chromosome track) scrolls inside its own body. */
-  align-items: stretch;
+  align-items: start;
 }
 
 /* Compact chromosome window: bounded to the stage, scrolls internally if the
-   track is taller than the available height. Matches the region-info window. */
+   track is taller than the available height. */
 .viewer-panel.compact {
   max-height: 100%;
-  min-height: 0;
 }
 
 .viewer-panel.compact .viewer-body {

@@ -369,7 +369,9 @@ const V_COPY2_X = V_COPY1_X + V_COPY_W + V_COPY_GAP;
 const V_LANE_X = V_COPY2_X + V_COPY_W + 14;
 const V_SVG_W = V_LANE_X + 96;
 const V_TOP = 22;
-const V_TRACK_H = 410;
+// Shortened so the patient chromosome window lands at about the same height as
+// the region-info window beside it (was 410).
+const V_TRACK_H = 270;
 const V_SVG_H = V_TOP + V_TRACK_H + 18;
 
 /**
